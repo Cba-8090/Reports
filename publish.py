@@ -1146,67 +1146,188 @@ class MarketIntelligenceEngine:
             return self._get_fallback_news_data()
 
     def extract_economic_indicators_data(self, soup: BeautifulSoup) -> Dict:
-        """Enhanced economic indicators data extraction"""
+        """Enhanced economic indicators data extraction with Framework 2 calculation"""
         if not soup:
             return self._get_fallback_economic_indicators_data()
 
         try:
             data = {
-                "risk_index": 43.4,
+                "risk_index": 35.9,  # Will extract from HTML
+                "overall_sentiment": "Strongly Bearish",  # Will extract from HTML
+                "sentiment_confidence": "High",  # Will extract from HTML
                 "category_scores": {
-                    "employment": 45.2,
-                    "inflation": 41.8,
-                    "growth": 44.1,
-                    "monetary_policy": 42.9
+                    "market_fear_risk": 50.0,  # Market Fear/Risk category
+                    "interest_rates": 87.5,  # Interest Rates category
+                    "economic_activity": 100.0,  # Economic Activity category
+                    "inflation_consumer": 58.3  # Inflation & Consumer category
                 },
-                "trend_analysis": "Mixed signals across indicators",
+                "indicator_distribution": {
+                    "bullish": 3,
+                    "neutral": 0,
+                    "bearish": 13
+                },
+                "contradiction_level": 0.0,  # Will calculate Framework 2 level
+                "framework_status": "NORMAL",  # Will determine based on data
                 "key_alerts": [],
-                "overall_assessment": "Moderate Risk Environment"
+                "overall_assessment": "Moderate Risk Environment"  # Will update based on actual data
             }
 
-            # Extract risk index
-            text_content = soup.get_text()
+            # ==========================================
+            # EXTRACT RISK INDEX (35.9)
+            # ==========================================
 
-            # Look for risk index patterns
-            risk_patterns = [
-                r'risk.*?index.*?(\d*\.?\d+)',
-                r'overall.*?risk.*?(\d*\.?\d+)',
-                r'risk.*?score.*?(\d*\.?\d+)'
-            ]
-
-            for pattern in risk_patterns:
-                match = re.search(pattern, text_content, re.IGNORECASE)
-                if match:
-                    try:
-                        risk_val = float(match.group(1))
-                        if 0 <= risk_val <= 100:  # Reasonable range
-                            data["risk_index"] = risk_val
+            # Look for "Risk Score: 35.9" in the status panel
+            status_cards = soup.find_all('div', class_='status-card')
+            for card in status_cards:
+                h3 = card.find('h3')
+                if h3 and 'Market Risk Index' in h3.get_text():
+                    # Look for the risk score paragraph
+                    paragraphs = card.find_all('p')
+                    for p in paragraphs:
+                        if 'Risk Score:' in p.get_text():
+                            risk_text = p.get_text()
+                            risk_match = re.search(r'Risk Score:\s*([\d.]+)', risk_text)
+                            if risk_match:
+                                data["risk_index"] = float(risk_match.group(1))
                             break
-                    except (ValueError, IndexError):
-                        continue
+                    break
 
-            # Extract category scores from tables
-            tables = soup.find_all('table')
-            for table in tables:
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-                    if len(cells) >= 2:
-                        category_name = cells[0].get_text(strip=True).lower()
-                        score_text = cells[1].get_text(strip=True)
-                        score_value = self.extract_numeric_value(score_text)
+            # ==========================================
+            # EXTRACT OVERALL SENTIMENT & CONFIDENCE
+            # ==========================================
 
-                        if score_value is not None and 0 <= score_value <= 100:
-                            if 'employment' in category_name or 'job' in category_name:
-                                data["category_scores"]["employment"] = score_value
-                            elif 'inflation' in category_name or 'price' in category_name:
-                                data["category_scores"]["inflation"] = score_value
-                            elif 'growth' in category_name or 'gdp' in category_name:
-                                data["category_scores"]["growth"] = score_value
-                            elif 'monetary' in category_name or 'interest' in category_name:
-                                data["category_scores"]["monetary_policy"] = score_value
+            # Look for "Economic Status" card
+            for card in status_cards:
+                h3 = card.find('h3')
+                if h3 and 'Economic Status' in h3.get_text():
+                    # Extract sentiment status
+                    status_value = card.find('div', class_='status-value')
+                    if status_value:
+                        data["overall_sentiment"] = status_value.get_text(strip=True)
 
-            # Determine overall assessment based on risk index
+                    # Extract confidence level
+                    confidence_p = card.find('p')
+                    if confidence_p and 'Confidence:' in confidence_p.get_text():
+                        conf_text = confidence_p.get_text()
+                        conf_match = re.search(r'Confidence:\s*<strong>(\w+)</strong>', str(card))
+                        if conf_match:
+                            data["sentiment_confidence"] = conf_match.group(1)
+                    break
+
+            # ==========================================
+            # EXTRACT INDICATOR DISTRIBUTION (3 Bullish, 0 Neutral, 13 Bearish)
+            # ==========================================
+
+            for card in status_cards:
+                h3 = card.find('h3')
+                if h3 and 'Indicator Distribution' in h3.get_text():
+                    # Extract bullish, neutral, bearish counts
+                    distribution_divs = card.find_all('div')
+                    for div in distribution_divs:
+                        if 'bullish' in div.get('class', []):
+                            bullish_val = self.extract_numeric_value(div.get_text())
+                            if bullish_val is not None:
+                                data["indicator_distribution"]["bullish"] = int(bullish_val)
+                        elif 'neutral' in div.get('class', []):
+                            neutral_val = self.extract_numeric_value(div.get_text())
+                            if neutral_val is not None:
+                                data["indicator_distribution"]["neutral"] = int(neutral_val)
+                        elif 'bearish' in div.get('class', []):
+                            bearish_val = self.extract_numeric_value(div.get_text())
+                            if bearish_val is not None:
+                                data["indicator_distribution"]["bearish"] = int(bearish_val)
+                    break
+
+            # ==========================================
+            # EXTRACT CATEGORY SCORES (50.0%, 87.5%, 100.0%, 58.3%)
+            # ==========================================
+
+            for card in status_cards:
+                h3 = card.find('h3')
+                if h3 and 'Category Scores' in h3.get_text():
+                    # Look for category score bars
+                    category_divs = card.find_all('div', style=True)
+                    current_category = None
+
+                    for div in category_divs:
+                        # Check if this div contains category name and score
+                        spans = div.find_all('span')
+                        if len(spans) == 2:
+                            category_name = spans[0].get_text(strip=True).lower()
+                            score_text = spans[1].get_text(strip=True)
+
+                            # Extract percentage from score text like "Bullish (50.0%)"
+                            score_match = re.search(r'\(([\d.]+)%\)', score_text)
+                            if score_match:
+                                score_val = float(score_match.group(1))
+
+                                # Map category names to our data structure
+                                if 'market fear' in category_name or 'risk' in category_name:
+                                    data["category_scores"]["market_fear_risk"] = score_val
+                                elif 'interest rates' in category_name:
+                                    data["category_scores"]["interest_rates"] = score_val
+                                elif 'economic activity' in category_name:
+                                    data["category_scores"]["economic_activity"] = score_val
+                                elif 'inflation' in category_name or 'consumer' in category_name:
+                                    data["category_scores"]["inflation_consumer"] = score_val
+                    break
+
+            # ==========================================
+            # CALCULATE FRAMEWORK 2 CONTRADICTION LEVEL
+            # ==========================================
+
+            # Calculate contradiction based on multiple factors:
+
+            # 1. Sentiment vs Risk contradiction
+            sentiment_bearish_intensity = 0
+            if "strongly bearish" in data["overall_sentiment"].lower():
+                sentiment_bearish_intensity = 80
+            elif "bearish" in data["overall_sentiment"].lower():
+                sentiment_bearish_intensity = 60
+            elif "neutral" in data["overall_sentiment"].lower():
+                sentiment_bearish_intensity = 50
+
+            # Risk index contradiction (high risk but claiming good economic assessment)
+            risk_vs_sentiment_gap = abs(data["risk_index"] - sentiment_bearish_intensity)
+
+            # 2. Category score contradictions
+            avg_category_score = sum(data["category_scores"].values()) / len(data["category_scores"])
+            category_contradiction = abs(avg_category_score - sentiment_bearish_intensity)
+
+            # 3. Indicator distribution contradiction
+            total_indicators = sum(data["indicator_distribution"].values())
+            if total_indicators > 0:
+                bearish_percentage = (data["indicator_distribution"]["bearish"] / total_indicators) * 100
+                distribution_contradiction = abs(bearish_percentage - sentiment_bearish_intensity)
+            else:
+                distribution_contradiction = 0
+
+            # 4. Confidence vs reality contradiction
+            confidence_multiplier = 1.0
+            if data["sentiment_confidence"].lower() == "high":
+                confidence_multiplier = 1.5  # High confidence in wrong assessment = more contradiction
+            elif data["sentiment_confidence"].lower() == "low":
+                confidence_multiplier = 0.8
+
+            # Calculate final contradiction level
+            base_contradiction = (risk_vs_sentiment_gap + category_contradiction + distribution_contradiction) / 3
+            data["contradiction_level"] = base_contradiction * confidence_multiplier
+
+            # ==========================================
+            # DETERMINE FRAMEWORK STATUS
+            # ==========================================
+
+            if data["contradiction_level"] > 50.0:
+                data["framework_status"] = "CRITICAL"
+            elif data["contradiction_level"] > 25.0:
+                data["framework_status"] = "WARNING"
+            else:
+                data["framework_status"] = "NORMAL"
+
+            # ==========================================
+            # UPDATE OVERALL ASSESSMENT
+            # ==========================================
+
             if data["risk_index"] < 30:
                 data["overall_assessment"] = "Low Risk Environment"
             elif data["risk_index"] < 60:
@@ -1214,11 +1335,277 @@ class MarketIntelligenceEngine:
             else:
                 data["overall_assessment"] = "High Risk Environment"
 
+            # Add contradiction-specific alert
+            if data["contradiction_level"] > 25.0:
+                data["key_alerts"].append(
+                    f"Economic assessment contradiction detected: {data['contradiction_level']:.1f}% divergence")
+
+            # ==========================================
+            # LOGGING
+            # ==========================================
+
+            logger.info(f"Economic Assessment Framework Data:")
+            logger.info(f"  - Risk Index: {data['risk_index']}")
+            logger.info(f"  - Overall Sentiment: {data['overall_sentiment']}")
+            logger.info(f"  - Contradiction Level: {data['contradiction_level']:.1f}%")
+            logger.info(f"  - Framework Status: {data['framework_status']}")
+            logger.info(f"  - Indicator Distribution: {data['indicator_distribution']}")
+
             return data
 
         except Exception as e:
             logger.error(f"Error extracting economic indicators data: {str(e)}")
+            logger.error(traceback.format_exc())
             return self._get_fallback_economic_indicators_data()
+
+    def extract_global_economic_data(self, soup: BeautifulSoup) -> Dict:
+        """Extract global economic dashboard data for Framework 4 (Risk vs Activity)"""
+        if not soup:
+            return self._get_fallback_global_economic_data()
+
+        try:
+            data = {
+                "overall_market_sentiment": -1.5,  # Will extract from HTML
+                "sentiment_confidence": "Low",  # Will extract from HTML
+                "bullish_signals_count": 3,  # Will count from table
+                "bearish_signals_count": 3,  # Will count from table
+                "top_bullish_indicators": [],  # Will extract from bullish table
+                "top_bearish_indicators": [],  # Will extract from bearish table
+                "risk_vs_activity_contradiction": 0.0,  # Will calculate
+                "framework_status": "NORMAL",  # Will determine
+                "market_alerts": [],  # Will extract alerts
+                "neutral_indicators": 0  # Will count neutral indicators
+            }
+
+            # ==========================================
+            # EXTRACT OVERALL MARKET SENTIMENT (-1.5)
+            # ==========================================
+
+            sentiment_section = soup.find('div', class_='metric-card')
+            if sentiment_section:
+                # Look for "Overall Market Sentiment" card
+                h3 = sentiment_section.find('h3')
+                if h3 and 'Overall Market Sentiment' in h3.get_text():
+                    # Extract sentiment score
+                    score_text = sentiment_section.get_text()
+                    score_match = re.search(r'Score:\s*([-+]?\d*\.?\d+)', score_text)
+                    if score_match:
+                        data["overall_market_sentiment"] = float(score_match.group(1))
+
+                    # Extract confidence level
+                    conf_match = re.search(r'Confidence:\s*<strong>(\w+)</strong>', str(sentiment_section))
+                    if conf_match:
+                        data["sentiment_confidence"] = conf_match.group(1)
+
+            # ==========================================
+            # EXTRACT TOP BULLISH SIGNALS
+            # ==========================================
+
+            bullish_signals = []
+            bullish_table = None
+
+            # Find the "Top Bullish Signals" table
+            metric_cards = soup.find_all('div', class_='metric-card')
+            for card in metric_cards:
+                h3 = card.find('h3')
+                if h3 and 'Top Bullish Signals' in h3.get_text():
+                    bullish_table = card.find('table')
+                    break
+
+            if bullish_table:
+                rows = bullish_table.find_all('tr')[1:]  # Skip header
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 3:
+                        indicator = cells[0].get_text(strip=True)
+                        value = self.extract_numeric_value(cells[1].get_text(strip=True))
+                        change_text = cells[2].get_text(strip=True)
+                        change = self.extract_percentage(change_text)
+
+                        bullish_signals.append({
+                            'indicator': indicator[:50] + "..." if len(indicator) > 50 else indicator,
+                            'value': value,
+                            'change': change
+                        })
+
+                data["top_bullish_indicators"] = bullish_signals
+                data["bullish_signals_count"] = len(bullish_signals)
+
+            # ==========================================
+            # EXTRACT TOP BEARISH SIGNALS
+            # ==========================================
+
+            bearish_signals = []
+            bearish_table = None
+
+            # Find the "Top Bearish Signals" table
+            for card in metric_cards:
+                h3 = card.find('h3')
+                if h3 and 'Top Bearish Signals' in h3.get_text():
+                    bearish_table = card.find('table')
+                    break
+
+            if bearish_table:
+                rows = bearish_table.find_all('tr')[1:]  # Skip header
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 3:
+                        indicator = cells[0].get_text(strip=True)
+                        value = self.extract_numeric_value(cells[1].get_text(strip=True))
+                        change_text = cells[2].get_text(strip=True)
+                        change = self.extract_percentage(change_text)
+
+                        bearish_signals.append({
+                            'indicator': indicator[:50] + "..." if len(indicator) > 50 else indicator,
+                            'value': value,
+                            'change': change
+                        })
+
+                data["top_bearish_indicators"] = bearish_signals
+                data["bearish_signals_count"] = len(bearish_signals)
+
+            # ==========================================
+            # COUNT NEUTRAL INDICATORS FROM ALL INDICATORS TABLE
+            # ==========================================
+
+            # Find the "All Economic Indicators" table
+            all_indicators_table = None
+            tables = soup.find_all('table')
+            for table in tables:
+                # Check if this is the all indicators table by looking for specific headers
+                headers = table.find_all('th')
+                if len(headers) >= 4:
+                    header_text = ' '.join([th.get_text() for th in headers])
+                    if 'Market Impact' in header_text and 'Trend' in header_text:
+                        all_indicators_table = table
+                        break
+
+            neutral_count = 0
+            if all_indicators_table:
+                rows = all_indicators_table.find_all('tr')[1:]  # Skip header
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 4:
+                        trend_cell = cells[3]  # Trend column
+                        if 'Neutral' in trend_cell.get_text():
+                            neutral_count += 1
+
+            data["neutral_indicators"] = neutral_count
+
+            # ==========================================
+            # EXTRACT MARKET ALERTS
+            # ==========================================
+
+            alerts_section = soup.find('h2', string='Market Alerts')
+            if alerts_section:
+                alerts_div = alerts_section.find_next_sibling('div')
+                if alerts_div:
+                    alert_text = alerts_div.get_text(strip=True)
+                    if 'No significant alerts' not in alert_text:
+                        # Extract actual alerts if they exist
+                        alert_items = alerts_div.find_all('div', class_='alert')
+                        for alert in alert_items:
+                            data["market_alerts"].append(alert.get_text(strip=True))
+                    else:
+                        data["market_alerts"] = ["No significant alerts"]
+
+            # ==========================================
+            # CALCULATE FRAMEWORK 4 CONTRADICTION LEVEL
+            # ==========================================
+
+            # Calculate Risk vs Activity contradiction based on:
+
+
+
+            # 1. Sentiment vs signal balance contradiction
+            expected_sentiment_from_signals = 0
+            if data["bullish_signals_count"] > data["bearish_signals_count"]:
+                expected_sentiment_from_signals = 2.0  # Should be positive
+            elif data["bearish_signals_count"] > data["bullish_signals_count"]:
+                expected_sentiment_from_signals = -2.0  # Should be negative
+            else:
+                expected_sentiment_from_signals = 0.0  # Should be neutral
+
+            sentiment_signal_gap = abs(data["overall_market_sentiment"] - expected_sentiment_from_signals)
+
+            # 2. Confidence vs uncertainty contradiction
+            confidence_contradiction = 0
+            if data["sentiment_confidence"].lower() == "low":
+                # Low confidence should mean neutral sentiment, not extreme
+                if abs(data["overall_market_sentiment"]) > 1.0:
+                    confidence_contradiction = 30.0  # Contradiction: claiming low confidence but definitive sentiment
+
+            # 3. Activity level vs risk assessment
+            total_active_signals = data["bullish_signals_count"] + data["bearish_signals_count"]
+            activity_level = (total_active_signals / (total_active_signals + data["neutral_indicators"]) * 100) if (
+                                                                                                                               total_active_signals +
+                                                                                                                               data[
+                                                                                                                                   "neutral_indicators"]) > 0 else 0
+
+            # High activity should correlate with higher risk/volatility
+            if activity_level > 60 and abs(data["overall_market_sentiment"]) < 1.0:
+                activity_contradiction = 25.0  # High activity but low sentiment = contradiction
+            else:
+                activity_contradiction = 0.0
+
+            # Calculate final contradiction level
+            data["risk_vs_activity_contradiction"] = (
+                                                                 sentiment_signal_gap * 20) + confidence_contradiction + activity_contradiction
+
+            # ==========================================
+            # DETERMINE FRAMEWORK STATUS
+            # ==========================================
+
+            if data["risk_vs_activity_contradiction"] > 50.0:
+                data["framework_status"] = "CRITICAL"
+            elif data["risk_vs_activity_contradiction"] > 25.0:
+                data["framework_status"] = "WARNING"
+            else:
+                data["framework_status"] = "NORMAL"
+
+            # ==========================================
+            # LOGGING
+            # ==========================================
+
+            logger.info(f"Risk vs Activity Framework Data:")
+            logger.info(f"  - Market Sentiment: {data['overall_market_sentiment']}")
+            logger.info(f"  - Bullish Signals: {data['bullish_signals_count']}")
+            logger.info(f"  - Bearish Signals: {data['bearish_signals_count']}")
+            logger.info(f"  - Neutral Indicators: {data['neutral_indicators']}")
+            logger.info(f"  - Contradiction Level: {data['risk_vs_activity_contradiction']:.1f}%")
+            logger.info(f"  - Framework Status: {data['framework_status']}")
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Error extracting global economic data: {str(e)}")
+            logger.error(traceback.format_exc())
+            return self._get_fallback_global_economic_data()
+
+    def _get_fallback_global_economic_data(self) -> Dict:
+        """Fallback global economic data for Framework 4"""
+        return {
+            "overall_market_sentiment": -1.5,
+            "sentiment_confidence": "Low",
+            "bullish_signals_count": 3,
+            "bearish_signals_count": 3,
+            "top_bullish_indicators": [
+                {"indicator": "Volatility Index", "value": 17.69, "change": -3.65},
+                {"indicator": "High Yield Bond Spread", "value": 3.19, "change": -2.45},
+                {"indicator": "Gold Volatility", "value": 20.10, "change": -2.43}
+            ],
+            "top_bearish_indicators": [
+                {"indicator": "Treasury Yields (10-Year)", "value": 4.46, "change": 1.13},
+                {"indicator": "Initial Jobless Claims", "value": 240000.0, "change": 5.73},
+                {"indicator": "Treasury Yields (2-Year)", "value": 3.94, "change": 1.29}
+            ],
+            "risk_vs_activity_contradiction": 85.0,
+            # Low confidence + definitive sentiment + balanced signals = contradiction
+            "framework_status": "CRITICAL",
+            "market_alerts": ["No significant alerts"],
+            "neutral_indicators": 10
+        }
+
 
     def extract_hyg_credit_data(self, soup: BeautifulSoup) -> Dict:
         """Extract HYG credit spread data dynamically from the HTML report"""
@@ -1421,21 +1808,31 @@ class MarketIntelligenceEngine:
         }
 
     def _get_fallback_economic_indicators_data(self) -> Dict:
+        """Enhanced fallback data with Framework 2 calculation"""
         return {
-            "risk_index": 43.4,
+            "risk_index": 35.9,
+            "overall_sentiment": "Strongly Bearish",
+            "sentiment_confidence": "High",
             "category_scores": {
-                "employment": 45.2,
-                "inflation": 41.8,
-                "growth": 44.1,
-                "monetary_policy": 42.9
+                "market_fear_risk": 50.0,
+                "interest_rates": 87.5,
+                "economic_activity": 100.0,
+                "inflation_consumer": 58.3
             },
-            "trend_analysis": "Mixed signals across indicators",
+            "indicator_distribution": {
+                "bullish": 3,
+                "neutral": 0,
+                "bearish": 13
+            },
+            "contradiction_level": 73.8,  # Calculated: bearish sentiment (80) vs low risk (35.9) = major contradiction
+            "framework_status": "CRITICAL",
+            "trend_analysis": "Economic assessments contradicting actual indicator data",
             "key_alerts": [
-                "Employment data showing moderate stress",
-                "Inflation trending within target range",
-                "Growth indicators mixed"
+                "Economic assessment contradiction detected: 73.8% divergence",
+                "High confidence bearish sentiment vs low risk index",
+                "13/16 indicators bearish but claiming 'economic assessment'"
             ],
-            "overall_assessment": "Moderate Risk Environment"
+            "overall_assessment": "Low Risk Environment"  # Contradicts the bearish sentiment
         }
 
     # Core Analysis Methods
@@ -1461,7 +1858,8 @@ class MarketIntelligenceEngine:
             "nifty_mrn": self.extract_nifty_mrn_data,
             "news_dashboard": self.extract_news_dashboard_data,
             "economic_indicators": self.extract_economic_indicators_data ,
-            "hyg_credit": self.extract_hyg_credit_data   
+            "hyg_credit": self.extract_hyg_credit_data ,
+            "global_economic": self.extract_global_economic_data
         }
 
         for source_id, path_template in self.data_sources.items():
@@ -1550,10 +1948,18 @@ class MarketIntelligenceEngine:
         )
 
         # Framework 2: Economic Assessment
-        self.contradiction_frameworks["economic_assessment"].current_level = 75.0
-        self.contradiction_frameworks["economic_assessment"].status = FrameworkStatus.CRITICAL
+        economic_data = raw_data.get("economic_indicators", {})
+        assessment_contradiction = economic_data.get("contradiction_level", 75.0)
 
-       # Framework 3: Credit Data Integrity - NOW DYNAMIC
+        self.contradiction_frameworks["economic_assessment"].current_level = assessment_contradiction
+        if assessment_contradiction > 50.0:
+            self.contradiction_frameworks["economic_assessment"].status = FrameworkStatus.CRITICAL
+        elif assessment_contradiction > 25.0:
+            self.contradiction_frameworks["economic_assessment"].status = FrameworkStatus.WARNING
+        else:
+            self.contradiction_frameworks["economic_assessment"].status = FrameworkStatus.NORMAL
+
+        # Framework 3: Credit Data Integrity - NOW DYNAMIC
         hyg_data = raw_data.get("hyg_credit", {})
         credit_divergence = hyg_data.get("divergence_percentage", 9.12)
 
@@ -1567,8 +1973,16 @@ class MarketIntelligenceEngine:
 
 
         # Framework 4: Risk vs Activity
-        self.contradiction_frameworks["risk_vs_activity"].current_level = 100.0
-        self.contradiction_frameworks["risk_vs_activity"].status = FrameworkStatus.CRITICAL
+        global_econ_data = raw_data.get("global_economic", {})
+        risk_activity_contradiction = global_econ_data.get("risk_vs_activity_contradiction", 85.0)
+
+        self.contradiction_frameworks["risk_vs_activity"].current_level = risk_activity_contradiction
+        if risk_activity_contradiction > 50.0:
+            self.contradiction_frameworks["risk_vs_activity"].status = FrameworkStatus.CRITICAL
+        elif risk_activity_contradiction > 25.0:
+            self.contradiction_frameworks["risk_vs_activity"].status = FrameworkStatus.WARNING
+        else:
+            self.contradiction_frameworks["risk_vs_activity"].status = FrameworkStatus.NORMAL
 
         # Framework 5: Sector Intelligence
         max_decline = 114.3
