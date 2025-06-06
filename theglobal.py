@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 import pandas as pd
+from htmlgenerator import HTMLPublicationGenerator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -613,7 +614,7 @@ The alert system indicates {self.data.hyg_confidence}% confidence in current ass
 
 
 def main():
-    """Main execution function"""
+    """Main execution function with HTML generation"""
     # Configuration
     config = {
         "global_economic": "C:/Projects/apps/globalindicators/data/market_dashboard_{date}.html",
@@ -647,10 +648,15 @@ def main():
             'credit_intelligence': narrative_gen.generate_credit_market_intelligence()
         }
 
-        # Output publication
-        output_path = f"global_market_intelligence_{target_date.strftime('%Y%m%d')}.md"
+        # Generate HTML Publication (NEW!)
+        html_generator = HTMLPublicationGenerator(global_data, publication_sections)
+        html_output_path = f"global_market_intelligence_{target_date.strftime('%Y%m%d')}.html"
+        html_generator.generate_html_publication(html_output_path)
+        logger.info(f"HTML publication generated: {html_output_path}")
 
-        with open(output_path, 'w', encoding='utf-8') as f:
+        # Generate Markdown (existing)
+        markdown_output_path = f"global_market_intelligence_{target_date.strftime('%Y%m%d')}.md"
+        with open(markdown_output_path, 'w', encoding='utf-8') as f:
             f.write(f"# Global Market Intelligence Report\n")
             f.write(f"**Report Date:** {target_date.strftime('%B %d, %Y')}\n\n")
 
@@ -659,9 +665,9 @@ def main():
                 f.write(content)
                 f.write("\n\n---\n\n")
 
-        logger.info(f"Global market publication generated: {output_path}")
+        logger.info(f"Markdown publication generated: {markdown_output_path}")
 
-        # Also output as JSON for integration
+        # Generate JSON (existing)
         json_output = {
             'metadata': {
                 'report_date': target_date.strftime('%Y-%m-%d'),
@@ -676,12 +682,13 @@ def main():
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(json_output, f, indent=2, default=str)
 
-        logger.info(f"Global market data exported: {json_path}")
+        logger.info(f"JSON data exported: {json_path}")
+
+        # Summary
+        print(f"\n🎉 Publication Generation Complete!")
+        print(f"📄 HTML: {html_output_path}")
+        print(f"📝 Markdown: {markdown_output_path}")
+        print(f"📊 JSON: {json_path}")
 
     except Exception as e:
         logger.error(f"Error in main execution: {e}")
-        raise
-
-
-if __name__ == "__main__":
-    main()
