@@ -68,6 +68,180 @@ class ContradictionFramework:
     implication: str
 
 
+def get_actual_working_stock_universe():
+    """
+    Returns the actual working stock list organized by sectors
+    Total: 200+ stocks that you have working data for
+    """
+
+    # AUTO & AUTO COMPONENTS
+    auto_sector = [
+        'BAJAJ-AUTO', 'EICHERMOT', 'HEROMOTOCO', 'MARUTI', 'TATAMOTORS',
+        'BOSCHLTD', 'TVSMOTOR', 'ASHOKLEY', 'APOLLOTYRE', 'BALKRISIND',
+        'BHARATFORG', 'ESCORTS', 'MRF', 'MSUMI', 'SONACOMS'
+    ]
+
+    # CAPITAL GOODS & INDUSTRIALS
+    capital_goods = [
+        'BEL', 'SIEMENS', 'ABB', 'HAL', 'LT', 'BHEL', 'CUMMINSIND',
+        'VOLTAS', 'TIINDIA', 'HAVELLS', 'CROMPTON', 'BDL'
+    ]
+
+    # CHEMICALS & MATERIALS
+    chemicals = [
+        'UPL', 'PIDILITIND', 'PIIND', 'SRF', 'GRASIM', 'ASIANPAINT',
+        'BERGEPAINT', 'DALBHARAT', 'DEEPAKNTR', 'COROMANDEL', 'TATACHEM',
+        'AARTIIND', 'ATUL', 'BALRAMCHIN', 'CHAMBLFERT'
+    ]
+
+    # CEMENT & CONSTRUCTION
+    cement_construction = [
+        'SHREECEM', 'ULTRACEMCO', 'AMBUJACEM', 'ACC', 'RAMCOCEM',
+        'JKCEMENT', 'INDIACEM', 'DLF'
+    ]
+
+    # CONSUMER GOODS - FMCG
+    fmcg_consumer = [
+        'TITAN', 'DMART', 'BRITANNIA', 'HINDUNILVR', 'ITC', 'NESTLEIND',
+        'TATACONSUM', 'COLPAL', 'DABUR', 'GODREJCP', 'MARICO',
+        'MCDOWELL-N', 'PGHH', 'VBL', 'UBL'
+    ]
+
+    # CONSUMER SERVICES & RETAIL
+    consumer_services = [
+        'IRCTC', 'NAUKRI', 'TRENT', 'INDHOTEL', 'DEVYANI', 'PATANJALI',
+        'ZOMATO', 'NYKAA'
+    ]
+
+    # BANKING & FINANCIAL SERVICES
+    banking_finance = [
+        'AXISBANK', 'BAJAJFINSV', 'BAJFINANCE', 'HDFCBANK', 'HDFCLIFE',
+        'ICICIBANK', 'INDUSINDBK', 'KOTAKBANK', 'SBILIFE', 'SBIN',
+        'BAJAJHLDNG', 'BANKBARODA', 'CANBK', 'CHOLAFIN', 'ICICIGI',
+        'ICICIPRULI', 'MUTHOOTFIN', 'PNB', 'SBICARD', 'IBULHSGFIN',
+        'ABCAPITAL', 'AUBANK', 'BANDHANBNK', 'BANKINDIA', 'FEDERALBNK'
+    ]
+
+    # HEALTHCARE & PHARMACEUTICALS
+    pharma_healthcare = [
+        'CIPLA', 'DIVISLAB', 'DRREDDY', 'SUNPHARMA', 'APOLLOHOSP',
+        'TORNTPHARM', 'ALKEM', 'AUROPHARMA', 'BIOCON', 'GLAND',
+        'IPCALAB', 'LAURUSLABS', 'LUPIN', 'MANKIND', 'MAXHEALTH'
+    ]
+
+    # INFORMATION TECHNOLOGY
+    it_sector = [
+        'HCLTECH', 'INFY', 'TCS', 'TECHM', 'WIPRO', 'COFORGE',
+        'KPITTECH', 'LTIM', 'LTTS', 'MPHASIS'
+    ]
+
+    # METALS & MINING
+    metals_mining = [
+        'HINDALCO', 'JSWSTEEL', 'TATASTEEL', 'ADANIENT', 'JINDALSTEL',
+        'VEDL', 'NMDC', 'SAIL', 'NATIONALUM', 'HINDCOPPER'
+    ]
+
+    # OIL, GAS & ENERGY
+    oil_gas_energy = [
+        'BPCL', 'COALINDIA', 'IOC', 'ONGC', 'RELIANCE', 'ATGL',
+        'GAIL', 'OIL', 'HINDPETRO', 'PETRONET', 'IGL', 'MGL'
+    ]
+
+    # POWER & UTILITIES
+    power_utilities = [
+        'NTPC', 'POWERGRID', 'ADANIGREEN', 'TATAPOWER', 'ADANIPOWER',
+        'NHPC', 'PFC', 'TORNTPOWER'
+    ]
+
+    # TELECOM & MEDIA
+    telecom_media = [
+        'BHARTIARTL', 'IDEA', 'INDUSTOWER', 'SUNTV', 'ZEEL'
+    ]
+
+    # INFRASTRUCTURE & TRANSPORTATION
+    infra_transport = [
+        'ADANIPORTS', 'INDIGO', 'CONCOR', 'DELHIVERY', 'GMRINFRA',
+        'RVNL', 'IRFC', 'RECLTD', 'PEL', 'MAZDOCK'
+    ]
+
+    # REAL ESTATE & HOUSING FINANCE
+    realty_housing = [
+        'DLF', 'GODREJPROP', 'OBEROIRLTY', 'LODHA', 'PRESTIGE',
+        'LICHSGFIN', 'CANFINHOME', 'POONAWALLA'
+    ]
+
+    # DIVERSIFIED & OTHERS
+    diversified_others = [
+        'ABFRL', 'ADANIENSOL', 'APLAPOLLO', 'ASTRAL', 'AWL', 'BATAINDIA',
+        'CGPOWER', 'CROMPTON', 'DIXON', 'FACT', 'FLUOROCHEM', 'FORTIS',
+        'GUJGASLTD', 'HDFCAMC', 'JSWENERGY', 'JUBLFOOD', 'LALPATHLAB',
+        'LICI', 'MOTHERSON', 'NAVINFLUOR'
+    ]
+
+    # SMALL & MID CAP SPECIALS
+    small_mid_specials = [
+        'METROPOLIS', 'MFSL', 'MCX', 'PAGEIND', 'PAYTM', 'PERSISTENT',
+        'POLICYBZR', 'POLYCAB', 'RAIN', 'SHRIRAMFIN', 'SYNGENE',
+        'TATACOMM', 'TATAELXSI', 'TATAMTRDVR', 'YESBANK'
+    ]
+
+    # EMERGING & NEW AGE
+    emerging_new_age = [
+        'DELTACORP', 'EXIDEIND', 'FSL', 'GLENMARK', 'GRANULES',
+        'HONAUT', 'IDFC', 'IDFCFIRSTB'
+    ]
+
+    # SPECIALTY & NICHE
+    specialty_niche = [
+        'GNFC', 'GSPL', 'INDIAMART', 'IEX', 'INTELLECT', 'MANAPPURAM',
+        'NAM-INDIA', 'OFSS', 'RBLBANK', 'WHIRLPOOL'
+    ]
+
+    # GROWTH & CONSUMPTION
+    growth_consumption = [
+        'BSOFT', 'CUB', 'ZYDUSLIFE', 'ABBOTINDIA'
+    ]
+
+    # Combine all sectors
+    all_stocks = (
+            auto_sector + capital_goods + chemicals + cement_construction +
+            fmcg_consumer + consumer_services + banking_finance + pharma_healthcare +
+            it_sector + metals_mining + oil_gas_energy + power_utilities +
+            telecom_media + infra_transport + realty_housing + diversified_others +
+            small_mid_specials + emerging_new_age + specialty_niche + growth_consumption
+    )
+
+    # Remove duplicates
+    seen = set()
+    unique_stocks = []
+    for stock in all_stocks:
+        if stock not in seen:
+            seen.add(stock)
+            unique_stocks.append(stock)
+
+    return unique_stocks
+
+
+def get_sector_mapping():
+    """
+    Returns mapping of stocks to their sectors for better categorization
+    """
+    return {
+        'AUTO': ['BAJAJ-AUTO', 'EICHERMOT', 'HEROMOTOCO', 'MARUTI', 'TATAMOTORS', 'BOSCHLTD', 'TVSMOTOR'],
+        'BANKING': ['AXISBANK', 'HDFCBANK', 'ICICIBANK', 'KOTAKBANK', 'SBIN', 'INDUSINDBK'],
+        'IT': ['TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM'],
+        'PHARMA': ['CIPLA', 'DIVISLAB', 'DRREDDY', 'SUNPHARMA', 'APOLLOHOSP'],
+        'FMCG': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'GODREJCP'],
+        'POWER': ['NTPC', 'POWERGRID', 'TATAPOWER', 'ADANIGREEN', 'ADANIPOWER'],
+        'METALS': ['TATASTEEL', 'JSWSTEEL', 'HINDALCO', 'JINDALSTEL', 'VEDL'],
+        'OIL_GAS': ['RELIANCE', 'ONGC', 'BPCL', 'IOC', 'GAIL'],
+        'CEMENT': ['ULTRACEMCO', 'SHREECEM', 'AMBUJACEM', 'ACC'],
+        'TELECOM': ['BHARTIARTL', 'IDEA', 'INDUSTOWER']
+    }
+
+
+
+
 class MarketIntelligenceEngine:
     """
     Core engine for processing market data and generating intelligence
@@ -275,7 +449,7 @@ class MarketIntelligenceEngine:
             return self._get_fallback_trend_data()
 
     def extract_market_dashboard_data(self, soup: BeautifulSoup) -> Dict:
-        """Enhanced market dashboard data extraction"""
+        """Enhanced market dashboard data extraction with comprehensive stock universe"""
         if not soup:
             return self._get_fallback_dashboard_data()
 
@@ -292,7 +466,7 @@ class MarketIntelligenceEngine:
                 "behavioral_patterns": 8,
                 "stock_lists": {
                     "accumulation": ["NTPC", "POWERGRID", "HINDUNILVR", "ITC", "COALINDIA", "TATAPOWER"],
-                    "distribution": ["BHARTI", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "RELIANCE"],
+                    "distribution": ["BHARTIARTL", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "RELIANCE"],
                     "bullish": [],
                     "bearish": []
                 },
@@ -317,16 +491,84 @@ class MarketIntelligenceEngine:
                     except (ValueError, IndexError):
                         continue
 
-            # Extract stock symbols
-            stock_symbols = re.findall(r'\b[A-Z]{2,10}\b', soup.get_text())
-            known_stocks = ['NTPC', 'POWERGRID', 'HINDUNILVR', 'ITC', 'COALINDIA', 'TATAPOWER',
-                            'BHARTI', 'ZOMATO', 'PAYTM', 'NYKAA', 'INDIGO', 'RELIANCE']
+            # Use comprehensive stock universe for extraction
+            known_stocks = get_actual_working_stock_universe()
+            sector_mapping = get_sector_mapping()
 
+            # Extract stock symbols from HTML with improved pattern
+            stock_symbols = re.findall(r'\b[A-Z][A-Z0-9-]{1,15}\b', soup.get_text())
+
+            # Filter found stocks against our comprehensive universe
             found_stocks = [stock for stock in stock_symbols if stock in known_stocks]
+
             if len(found_stocks) >= 6:
-                data["stock_lists"]["accumulation"] = found_stocks[:6]
-                data["stock_lists"]["distribution"] = found_stocks[6:12] if len(found_stocks) >= 12 else found_stocks[
-                                                                                                         3:9]
+                # Intelligent distribution based on sector performance
+                power_stocks = [s for s in found_stocks if s in sector_mapping.get('POWER', [])]
+                fmcg_stocks = [s for s in found_stocks if s in sector_mapping.get('FMCG', [])]
+                banking_stocks = [s for s in found_stocks if s in sector_mapping.get('BANKING', [])]
+                telecom_stocks = [s for s in found_stocks if s in sector_mapping.get('TELECOM', [])]
+
+                # Smart accumulation list (favor power/fmcg as per your original logic)
+                accumulation_candidates = power_stocks + fmcg_stocks + banking_stocks[:2]
+                data["stock_lists"]["accumulation"] = accumulation_candidates[
+                                                      :6] if accumulation_candidates else found_stocks[:6]
+
+                # Smart distribution list (favor telecom/services as per original logic)
+                distribution_candidates = telecom_stocks + [s for s in found_stocks if
+                                                            s in ['ZOMATO', 'PAYTM', 'NYKAA', 'INDIGO']]
+                data["stock_lists"]["distribution"] = distribution_candidates[
+                                                      :6] if distribution_candidates else found_stocks[-6:]
+
+            # Enhanced pattern matching for your stock universe
+            text_content_upper = soup.get_text().upper()
+
+            # Look for sector-specific sentiment patterns
+            if 'POWER' in text_content_upper and ('POSITIVE' in text_content_upper or 'BULLISH' in text_content_upper):
+                power_stocks = [s for s in known_stocks if s in sector_mapping.get('POWER', [])]
+                if power_stocks:
+                    data["stock_lists"]["accumulation"] = power_stocks[:6]
+
+            if 'TELECOM' in text_content_upper and (
+                    'NEGATIVE' in text_content_upper or 'BEARISH' in text_content_upper):
+                telecom_stocks = [s for s in known_stocks if s in sector_mapping.get('TELECOM', [])]
+                if telecom_stocks:
+                    data["stock_lists"]["distribution"] = telecom_stocks[:6]
+
+            # Look for specific accumulation/distribution patterns
+            accumulation_patterns = [
+                r'accumulation.*?([A-Z][A-Z0-9-]{1,15})',
+                r'buy.*?([A-Z][A-Z0-9-]{1,15})',
+                r'bullish.*?([A-Z][A-Z0-9-]{1,15})',
+                r'positive.*?([A-Z][A-Z0-9-]{1,15})'
+            ]
+
+            distribution_patterns = [
+                r'distribution.*?([A-Z][A-Z0-9-]{1,15})',
+                r'sell.*?([A-Z][A-Z0-9-]{1,15})',
+                r'bearish.*?([A-Z][A-Z0-9-]{1,15})',
+                r'negative.*?([A-Z][A-Z0-9-]{1,15})'
+            ]
+
+            accumulation_stocks = []
+            distribution_stocks = []
+
+            for pattern in accumulation_patterns:
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                for match in matches:
+                    if match in known_stocks and match not in accumulation_stocks:
+                        accumulation_stocks.append(match)
+
+            for pattern in distribution_patterns:
+                matches = re.findall(pattern, text_content, re.IGNORECASE)
+                for match in matches:
+                    if match in known_stocks and match not in distribution_stocks:
+                        distribution_stocks.append(match)
+
+            # Update stock lists if we found pattern-based matches
+            if accumulation_stocks:
+                data["stock_lists"]["accumulation"] = accumulation_stocks[:6]
+            if distribution_stocks:
+                data["stock_lists"]["distribution"] = distribution_stocks[:6]
 
             return data
 
@@ -661,6 +903,7 @@ class MarketIntelligenceEngine:
         }
 
     def _get_fallback_dashboard_data(self) -> Dict:
+        """Updated fallback data using your actual working stock universe"""
         return {
             "overall_sentiment": 0.09,
             "red_alerts": 25,
@@ -668,7 +911,7 @@ class MarketIntelligenceEngine:
             "institutional_flows": {"fii_positive": 23.6, "dii_flows": 52.0, "retail_flows": 30.0},
             "stock_lists": {
                 "accumulation": ["NTPC", "POWERGRID", "HINDUNILVR", "ITC", "COALINDIA", "TATAPOWER"],
-                "distribution": ["BHARTI", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "RELIANCE"]
+                "distribution": ["BHARTIARTL", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "IDEA"]
             },
             "divergent_stocks": 61,
             "price_sentiment_correlation": 68
