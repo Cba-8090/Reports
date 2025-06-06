@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Market Pulse - June 03, 2025</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;
+            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 300; }
+        .header .subtitle { font-size: 1.2em; opacity: 0.9; }
+
+        .hero-metrics {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+
+        .hero-card {
+            background: white; padding: 25px; border-radius: 15px; text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1); transition: transform 0.3s ease;
+        }
+
+        .hero-card:hover { transform: translateY(-5px); }
+        .hero-card h3 { color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; }
+
+        .hero-value { font-size: 2.2em; font-weight: bold; margin-bottom: 10px; }
+        .hero-value.critical { color: #e74c3c; }
+        .hero-value.warning { color: #f39c12; }
+        .hero-value.normal { color: #27ae60; }
+
+        .divergence-alert {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 25px; border-radius: 15px; margin-bottom: 30px;
+            border-left: 5px solid #e74c3c;
+        }
+
+        .section {
+            background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .framework-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; margin: 20px 0;
+        }
+
+        .framework-card {
+            padding: 20px; border-radius: 10px; border-left: 5px solid #3498db;
+        }
+
+        .framework-card.critical { border-left-color: #e74c3c; background: #ffeaa7; }
+        .framework-card.warning { border-left-color: #f39c12; background: #fff3cd; }
+        .framework-card.normal { border-left-color: #27ae60; background: #e8f5e8; }
+
+        .stock-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;
+        }
+
+        .stock-section {
+            padding: 25px; border-radius: 15px; color: white;
+        }
+
+        .accumulation { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .distribution { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        .sector-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px; margin: 20px 0;
+        }
+
+        .sector-card {
+            padding: 15px; border-radius: 10px; text-align: center;
+            color: white; font-weight: bold;
+        }
+
+        .sector-card.bullish { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .sector-card.bearish { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .sector-card.neutral { background: linear-gradient(135deg, #f39c12, #e67e22); }
+
+        .action-items {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white; padding: 25px; border-radius: 15px; margin-top: 30px;
+        }
+
+        .action-list { list-style: none; }
+        .action-list li { margin: 10px 0; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
+
+        .footer { text-align: center; color: #7f8c8d; margin-top: 30px; padding: 20px; }
+
+        @media (max-width: 768px) {
+            .hero-metrics, .stock-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>📊 Daily Market Pulse</h1>
+            <p class="subtitle">Comprehensive Market Intelligence | June 03, 2025</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Multi-Dimensional Analysis • Real-Time Intelligence • Professional Grade</p>
+        </header>
+
+        <!-- Hero Metrics Dashboard -->
+        <div class="hero-metrics">
+            <div class="hero-card">
+                <h3>🚨 System Alert Status</h3>
+                <div class="hero-value critical">CRITICAL</div>
+                <p>5/7 Critical Frameworks</p>
+            </div>
+
+            <div class="hero-card">
+                <h3>🌍 Global vs Local Sentiment</h3>
+                <div class="hero-value critical">2,344%</div>
+                <p>Divergence: 2.2 vs 0.09</p>
+            </div>
+
+            <div class="hero-card">
+                <h3>💳 Credit Data Integrity</h3>
+                <div class="hero-value critical">126%</div>
+                <p>HYG Spread Divergence</p>
+            </div>
+
+            <div class="hero-card">
+                <h3>🔬 MRN Regime Status</h3>
+                <div class="hero-value warning">14/21</div>
+                <p>Days (Transition High)</p>
+            </div>
+        </div>
+
+        <!-- Critical Divergence Alert -->
+        <div class="divergence-alert">
+            <h2>🚨 UNPRECEDENTED MARKET INTELLIGENCE ALERT</h2>
+            <p><strong>BOTTOM LINE UP FRONT:</strong> 5 analytical frameworks showing systematic contradictions, creating exceptional arbitrage opportunities. Global markets bullish (2.2) while local markets bearish (0.09). Economic assessments optimistic while indicators bearish. Immediate multi-dimensional positioning required.</p>
+        </div>
+
+        <!-- Framework Analysis -->
+        <div class="section">
+            <h2>🔍 Seven-Framework Contradiction Analysis</h2>
+
+            <div class="framework-grid">
+                <div class="framework-card critical">
+                    <h4>Global Vs Local</h4>
+                    <div class="hero-value critical">2344.4</div>
+                    <p><strong>Status:</strong> CRITICAL</p>
+                    <p><strong>Threshold:</strong> 100.0</p>
+                    <p>Global-local sentiment divergence creating arbitrage opportunities</p>
+                </div>
+                <div class="framework-card critical">
+                    <h4>Economic Assessment</h4>
+                    <div class="hero-value critical">75.0</div>
+                    <p><strong>Status:</strong> CRITICAL</p>
+                    <p><strong>Threshold:</strong> 50.0</p>
+                    <p>Economic assessments contradicting actual indicator data</p>
+                </div>
+                <div class="framework-card critical">
+                    <h4>Credit Vs Fundamentals</h4>
+                    <div class="hero-value critical">126.0</div>
+                    <p><strong>Status:</strong> CRITICAL</p>
+                    <p><strong>Threshold:</strong> 25.0</p>
+                    <p>Credit spread calculations showing data integrity issues</p>
+                </div>
+                <div class="framework-card critical">
+                    <h4>Risk Vs Activity</h4>
+                    <div class="hero-value critical">100.0</div>
+                    <p><strong>Status:</strong> CRITICAL</p>
+                    <p><strong>Threshold:</strong> 50.0</p>
+                    <p>Risk models disconnected from actual market behavior</p>
+                </div>
+                <div class="framework-card critical">
+                    <h4>Sector Intelligence</h4>
+                    <div class="hero-value critical">114.3</div>
+                    <p><strong>Status:</strong> CRITICAL</p>
+                    <p><strong>Threshold:</strong> 20.0</p>
+                    <p>Major sector sentiment reversals requiring rotation</p>
+                </div>
+                <div class="framework-card warning">
+                    <h4>Quantitative Regime</h4>
+                    <div class="hero-value warning">66.7</div>
+                    <p><strong>Status:</strong> WARNING</p>
+                    <p><strong>Threshold:</strong> 75.0</p>
+                    <p>MRN regime approaching transition thresholds</p>
+                </div>
+                <div class="framework-card warning">
+                    <h4>Us Economic Backdrop</h4>
+                    <div class="hero-value warning">50.0</div>
+                    <p><strong>Status:</strong> WARNING</p>
+                    <p><strong>Threshold:</strong> 30.0</p>
+                    <p>US economic indicators showing mixed signals</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Intelligence -->
+        <div class="section">
+            <h2>📈 Daily Stock Intelligence</h2>
+
+            <div class="stock-grid">
+                <div class="stock-section accumulation">
+                    <h3>🔥 TOP ACCUMULATION TARGETS</h3>
+                    <p style="margin-bottom: 20px;">Based on sentiment analysis & institutional flows</p>
+                    
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>NTPC</strong> (Power/FMCG Leader)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>POWERGRID</strong> (Power/FMCG Leader)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>HINDUNILVR</strong> (Power/FMCG Leader)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>ITC</strong> (Defensive Play)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>COALINDIA</strong> (Defensive Play)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>TATAPOWER</strong> (Defensive Play)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+            </div>
+                </div>
+
+                <div class="stock-section distribution">
+                    <h3>⚠️ TOP EXIT/SHORT TARGETS</h3>
+                    <p style="margin-bottom: 20px;">Based on sentiment deterioration & selling</p>
+                    
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>BHARTI</strong> (Telecom/Services Risk)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>ZOMATO</strong> (Telecom/Services Risk)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>PAYTM</strong> (Telecom/Services Risk)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>NYKAA</strong> (Consumer Weakness)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>INDIGO</strong> (Consumer Weakness)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                <strong>RELIANCE</strong> (Consumer Weakness)
+                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+            </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sector Intelligence -->
+        <div class="section">
+            <h2>🏭 Sector Intelligence Dashboard</h2>
+            <p><strong>Assessment:</strong> MODERATELY BEARISH AND DETERIORATING</p>
+
+            <div class="sector-grid">
+                <div class="sector-card bullish">
+                    <h4>POWER</h4>
+                    <div>50.0 Ratio</div>
+                    <small>TOP PICK</small>
+                </div>
+                <div class="sector-card bullish">
+                    <h4>FMCG</h4>
+                    <div>18.18 Ratio</div>
+                    <small>DEFENSIVE</small>
+                </div>
+                <div class="sector-card bearish">
+                    <h4>TELECOM</h4>
+                    <div>AVOID</div>
+                    <small>-50.0 Ratio</small>
+                </div>
+                <div class="sector-card bearish">
+                    <h4>SERVICES</h4>
+                    <div>AVOID</div>
+                    <small>-100.0% Decline</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Immediate Action Items -->
+        <div class="action-items">
+            <h3>⚡ IMMEDIATE ACTION ITEMS (Next 4 Hours)</h3>
+            <ul class="action-list">
+                <li><strong>🎯 Master Arbitrage:</strong> Position across all 5 framework contradictions</li>
+                <li><strong>📈 Stock Actions:</strong> Accumulate Power sector (NTPC, POWERGRID, HINDUNILVR), Exit Telecom (BHARTI, ZOMATO)</li>
+                <li><strong>💳 Credit Short:</strong> HYG spread expected to widen to calculated 7.42%</li>
+                <li><strong>🔬 MRN Transition:</strong> Prepare for regime change (volatility expansion)</li>
+                <li><strong>🏭 Sector Rotation:</strong> Long Power/FMCG, Short Consumer Services/Telecom</li>
+                <li><strong>🌍 Global-Local:</strong> International overweight vs local underweight</li>
+                <li><strong>📊 Data Quality:</strong> Monitor Treasury data correction impact</li>
+                <li><strong>⚠️ Risk Management:</strong> High volatility expected across all timeframes</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Market Intelligence Publication System</strong> | Generated: 2025-06-04 17:05:37</p>
+            <p>Sources: 9 Integrated Reports • 7 Analytical Frameworks • Real-Time Intelligence</p>
+            <p><strong>Next Update:</strong> Tomorrow 06:00 IST | <strong>Emergency Alerts:</strong> Real-Time</p>
+        </div>
+    </div>
+</body>
+</html>
