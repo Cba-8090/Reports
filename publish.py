@@ -1575,12 +1575,22 @@ class MarketIntelligenceEngine:
             logger.info(f"  - Contradiction Level: {data['risk_vs_activity_contradiction']:.1f}%")
             logger.info(f"  - Framework Status: {data['framework_status']}")
 
+            logger.info(f"Framework 4 extraction complete. Keys so far: {list(data.keys())}")
+
+
             #== == == == == == == == == == == == == == == == == == == == ==
             # ADD THIS NEW SECTION AT THE END:
             # ==========================================
 
+            
+            logger.info("Starting Framework 7 US Economic Backdrop extraction...")
+
             # NEW: Extract Framework 7 data from same source
             us_backdrop_data = self.extract_us_economic_backdrop_data(soup)
+
+            logger.info(f"Framework 7 extracted. US indicators: {len(us_backdrop_data.get('us_indicators', []))}")
+            logger.info(
+                f"Framework 7 backdrop_contradiction: {us_backdrop_data.get('backdrop_contradiction', 'MISSING')}")
 
             # Merge Framework 7 data into the return dictionary
             data.update({
@@ -1590,6 +1600,9 @@ class MarketIntelligenceEngine:
                 "dynamic_implication": us_backdrop_data["dynamic_implication"],
                 "us_investment_opportunities": us_backdrop_data["investment_opportunities"]
             })
+
+            logger.info(f"Framework 7 integration complete. Final keys: {list(data.keys())}")
+            logger.info(f"Final backdrop_contradiction in data: {data.get('backdrop_contradiction', 'MISSING')}")
 
 
             return data
@@ -1953,11 +1966,11 @@ class MarketIntelligenceEngine:
             logger.error(traceback.format_exc())
             return self._get_fallback_us_economic_data()
 
-
-
+  
     def _get_fallback_global_economic_data(self) -> Dict:
-        """Fallback global economic data for Framework 4"""
-        return {
+        """Updated fallback to include Framework 7 data"""
+        base_data = {
+            # Framework 4 data
             "overall_market_sentiment": -1.5,
             "sentiment_confidence": "Low",
             "bullish_signals_count": 3,
@@ -1973,11 +1986,22 @@ class MarketIntelligenceEngine:
                 {"indicator": "Treasury Yields (2-Year)", "value": 3.94, "change": 1.29}
             ],
             "risk_vs_activity_contradiction": 85.0,
-            # Low confidence + definitive sentiment + balanced signals = contradiction
             "framework_status": "CRITICAL",
             "market_alerts": ["No significant alerts"],
             "neutral_indicators": 10
         }
+
+        # Add Framework 7 fallback data
+        us_fallback = self._get_fallback_us_economic_data()
+        base_data.update({
+            "us_backdrop_data": us_fallback,
+            "backdrop_contradiction": us_fallback["backdrop_contradiction"],
+            "backdrop_status": us_fallback["backdrop_status"],
+            "dynamic_implication": us_fallback["dynamic_implication"],
+            "us_investment_opportunities": us_fallback["investment_opportunities"]
+        })
+
+        return base_data
 
 
     def extract_hyg_credit_data(self, soup: BeautifulSoup) -> Dict:
@@ -2424,8 +2448,18 @@ class MarketIntelligenceEngine:
 
         # Framework 7: US Economic Backdrop
         us_economic_data = raw_data.get("global_economic", {})  # Reuse same data source as Framework 4
+
+        # Debug logging
+        logger.info(f"Framework 7 Debug - Raw global_economic keys: {list(us_economic_data.keys())}")
+
         backdrop_contradiction = us_economic_data.get("backdrop_contradiction", 45.2)
         backdrop_status = us_economic_data.get("backdrop_status", "CRITICAL")
+        dynamic_implication = us_economic_data.get("dynamic_implication",
+                                                   "US economic indicators showing mixed signals")
+
+        logger.info(f"Framework 7 Debug - backdrop_contradiction: {backdrop_contradiction}")
+        logger.info(f"Framework 7 Debug - backdrop_status: {backdrop_status}")
+        logger.info(f"Framework 7 Debug - dynamic_implication: {dynamic_implication}")
 
         self.contradiction_frameworks["us_economic_backdrop"].current_level = backdrop_contradiction
         if backdrop_contradiction > 30.0:
@@ -2435,11 +2469,8 @@ class MarketIntelligenceEngine:
         else:
             self.contradiction_frameworks["us_economic_backdrop"].status = FrameworkStatus.NORMAL
 
-
-        self.contradiction_frameworks["us_economic_backdrop"].implication = us_economic_data.get(
-            "dynamic_implication",
-            "US economic indicators showing mixed signals"
-        )
+        # Update implication with dynamic data
+        self.contradiction_frameworks["us_economic_backdrop"].implication = dynamic_implication
 
 
         # Calculate master divergence index
