@@ -227,16 +227,18 @@ def get_sector_mapping():
     Returns mapping of stocks to their sectors for better categorization
     """
     return {
-        'AUTO': ['BAJAJ-AUTO', 'EICHERMOT', 'HEROMOTOCO', 'MARUTI', 'TATAMOTORS', 'BOSCHLTD', 'TVSMOTOR'],
+        'POWER': ['NTPC', 'POWERGRID', 'TATAPOWER', 'ADANIGREEN', 'ADANIPOWER', 'NHPC', 'PFC'],
+        'FMCG': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'GODREJCP', 'COLPAL'],
         'BANKING': ['AXISBANK', 'HDFCBANK', 'ICICIBANK', 'KOTAKBANK', 'SBIN', 'INDUSINDBK'],
-        'IT': ['TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM'],
-        'PHARMA': ['CIPLA', 'DIVISLAB', 'DRREDDY', 'SUNPHARMA', 'APOLLOHOSP'],
-        'FMCG': ['HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'GODREJCP'],
-        'POWER': ['NTPC', 'POWERGRID', 'TATAPOWER', 'ADANIGREEN', 'ADANIPOWER'],
-        'METALS': ['TATASTEEL', 'JSWSTEEL', 'HINDALCO', 'JINDALSTEL', 'VEDL'],
-        'OIL_GAS': ['RELIANCE', 'ONGC', 'BPCL', 'IOC', 'GAIL'],
-        'CEMENT': ['ULTRACEMCO', 'SHREECEM', 'AMBUJACEM', 'ACC'],
-        'TELECOM': ['BHARTIARTL', 'IDEA', 'INDUSTOWER']
+        'IT': ['TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM', 'COFORGE', 'LTIM'],
+        'PHARMA': ['CIPLA', 'DIVISLAB', 'DRREDDY', 'SUNPHARMA', 'APOLLOHOSP', 'BIOCON'],
+        'AUTO': ['BAJAJ-AUTO', 'EICHERMOT', 'HEROMOTOCO', 'MARUTI', 'TATAMOTORS', 'BOSCHLTD'],
+        'METALS': ['TATASTEEL', 'JSWSTEEL', 'HINDALCO', 'JINDALSTEL', 'VEDL', 'NMDC'],
+        'OIL_GAS': ['RELIANCE', 'ONGC', 'BPCL', 'IOC', 'GAIL', 'COALINDIA'],
+        'CEMENT': ['ULTRACEMCO', 'SHREECEM', 'AMBUJACEM', 'ACC', 'RAMCOCEM'],
+        'TELECOM': ['BHARTIARTL', 'IDEA', 'INDUSTOWER'],
+        'CONSUMER_SERVICES': ['ZOMATO', 'NYKAA', 'PAYTM', 'IRCTC', 'NAUKRI'],
+        'CAPITAL_GOODS': ['BEL', 'SIEMENS', 'ABB', 'HAL', 'LT', 'BHEL']
     }
 
 
@@ -449,11 +451,15 @@ class MarketIntelligenceEngine:
             return self._get_fallback_trend_data()
 
     def extract_market_dashboard_data(self, soup: BeautifulSoup) -> Dict:
-        """Enhanced market dashboard data extraction with comprehensive stock universe"""
+        """Enhanced market dashboard data extraction with comprehensive stock universe and proper separation"""
         if not soup:
             return self._get_fallback_dashboard_data()
 
         try:
+            # Use comprehensive stock universe for extraction
+            known_stocks = get_actual_working_stock_universe()
+            sector_mapping = get_sector_mapping()
+
             data = {
                 "overall_sentiment": 0.09,
                 "red_alerts": 25,
@@ -465,8 +471,8 @@ class MarketIntelligenceEngine:
                 },
                 "behavioral_patterns": 8,
                 "stock_lists": {
-                    "accumulation": ["NTPC", "POWERGRID", "HINDUNILVR", "ITC", "COALINDIA", "TATAPOWER"],
-                    "distribution": ["BHARTIARTL", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "RELIANCE"],
+                    "accumulation": [],
+                    "distribution": [],
                     "bullish": [],
                     "bearish": []
                 },
@@ -491,84 +497,100 @@ class MarketIntelligenceEngine:
                     except (ValueError, IndexError):
                         continue
 
-            # Use comprehensive stock universe for extraction
-            known_stocks = get_actual_working_stock_universe()
-            sector_mapping = get_sector_mapping()
-
-            # Extract stock symbols from HTML with improved pattern
+            # Extract stock symbols from HTML with improved pattern for stocks with hyphens
             stock_symbols = re.findall(r'\b[A-Z][A-Z0-9-]{1,15}\b', soup.get_text())
 
             # Filter found stocks against our comprehensive universe
             found_stocks = [stock for stock in stock_symbols if stock in known_stocks]
 
+            logger.info(f"Found {len(found_stocks)} matching stocks from HTML: {found_stocks[:10]}...")  # Debug
+
             if len(found_stocks) >= 6:
-                # Intelligent distribution based on sector performance
+                # Categorize stocks by sector for intelligent allocation
                 power_stocks = [s for s in found_stocks if s in sector_mapping.get('POWER', [])]
                 fmcg_stocks = [s for s in found_stocks if s in sector_mapping.get('FMCG', [])]
                 banking_stocks = [s for s in found_stocks if s in sector_mapping.get('BANKING', [])]
+                it_stocks = [s for s in found_stocks if s in sector_mapping.get('IT', [])]
                 telecom_stocks = [s for s in found_stocks if s in sector_mapping.get('TELECOM', [])]
 
-                # Smart accumulation list (favor power/fmcg as per your original logic)
-                accumulation_candidates = power_stocks + fmcg_stocks + banking_stocks[:2]
-                data["stock_lists"]["accumulation"] = accumulation_candidates[
-                                                      :6] if accumulation_candidates else found_stocks[:6]
+                # Stocks that are typically in Consumer Services (bearish category)
+                consumer_service_stocks = [s for s in found_stocks if
+                                           s in ['ZOMATO', 'NYKAA', 'PAYTM', 'IRCTC', 'NAUKRI']]
 
-                # Smart distribution list (favor telecom/services as per original logic)
-                distribution_candidates = telecom_stocks + [s for s in found_stocks if
-                                                            s in ['ZOMATO', 'PAYTM', 'NYKAA', 'INDIGO']]
-                data["stock_lists"]["distribution"] = distribution_candidates[
-                                                      :6] if distribution_candidates else found_stocks[-6:]
+                # Build accumulation list (bullish stocks - Power, FMCG, Banking, IT)
+                accumulation_candidates = power_stocks + fmcg_stocks + banking_stocks + it_stocks
 
-            # Enhanced pattern matching for your stock universe
+                # Build distribution list (bearish stocks - Telecom, Consumer Services)
+                distribution_candidates = telecom_stocks + consumer_service_stocks
+
+                # Add remaining stocks to appropriate lists, ensuring no overlap
+                remaining_stocks = [s for s in found_stocks if
+                                    s not in accumulation_candidates and s not in distribution_candidates]
+
+                # Fill accumulation first
+                final_accumulation = accumulation_candidates[:6]
+                if len(final_accumulation) < 6:
+                    # Add remaining stocks but ensure they're not already in distribution
+                    for stock in remaining_stocks:
+                        if stock not in distribution_candidates and len(final_accumulation) < 6:
+                            final_accumulation.append(stock)
+
+                # Fill distribution, ensuring no overlap with accumulation
+                final_distribution = distribution_candidates[:6]
+                if len(final_distribution) < 6:
+                    # Add remaining stocks not in accumulation
+                    for stock in remaining_stocks:
+                        if stock not in final_accumulation and len(final_distribution) < 6:
+                            final_distribution.append(stock)
+
+                data["stock_lists"]["accumulation"] = final_accumulation
+                data["stock_lists"]["distribution"] = final_distribution
+
+            # If insufficient stocks found from HTML, use intelligent defaults with proper separation
+            if len(data["stock_lists"]["accumulation"]) < 6:
+                # Use Power + FMCG stocks for accumulation
+                default_accumulation = (sector_mapping.get('POWER', [])[:3] +
+                                        sector_mapping.get('FMCG', [])[:3])
+                data["stock_lists"]["accumulation"] = default_accumulation[:6]
+
+            if len(data["stock_lists"]["distribution"]) < 6:
+                # Use Telecom + Consumer Services for distribution
+                default_distribution = (sector_mapping.get('TELECOM', [])[:3] +
+                                        ['ZOMATO', 'NYKAA', 'PAYTM'][:3])
+                data["stock_lists"]["distribution"] = default_distribution[:6]
+
+            # Enhanced pattern matching for specific sentiment signals
             text_content_upper = soup.get_text().upper()
 
             # Look for sector-specific sentiment patterns
-            if 'POWER' in text_content_upper and ('POSITIVE' in text_content_upper or 'BULLISH' in text_content_upper):
-                power_stocks = [s for s in known_stocks if s in sector_mapping.get('POWER', [])]
-                if power_stocks:
-                    data["stock_lists"]["accumulation"] = power_stocks[:6]
+            if any(word in text_content_upper for word in ['POWER BULLISH', 'POWER POSITIVE', 'POWER BUY']):
+                data["stock_lists"]["accumulation"] = sector_mapping.get('POWER', [])[:6]
 
-            if 'TELECOM' in text_content_upper and (
-                    'NEGATIVE' in text_content_upper or 'BEARISH' in text_content_upper):
-                telecom_stocks = [s for s in known_stocks if s in sector_mapping.get('TELECOM', [])]
-                if telecom_stocks:
-                    data["stock_lists"]["distribution"] = telecom_stocks[:6]
+            if any(word in text_content_upper for word in ['TELECOM BEARISH', 'TELECOM NEGATIVE', 'TELECOM SELL']):
+                data["stock_lists"]["distribution"] = (sector_mapping.get('TELECOM', [])[:3] +
+                                                       ['ZOMATO', 'NYKAA', 'PAYTM'][:3])
 
-            # Look for specific accumulation/distribution patterns
-            accumulation_patterns = [
-                r'accumulation.*?([A-Z][A-Z0-9-]{1,15})',
-                r'buy.*?([A-Z][A-Z0-9-]{1,15})',
-                r'bullish.*?([A-Z][A-Z0-9-]{1,15})',
-                r'positive.*?([A-Z][A-Z0-9-]{1,15})'
-            ]
+            # Final validation - ensure no stock appears in both lists
+            accumulation_set = set(data["stock_lists"]["accumulation"])
+            distribution_set = set(data["stock_lists"]["distribution"])
+            overlap = accumulation_set.intersection(distribution_set)
 
-            distribution_patterns = [
-                r'distribution.*?([A-Z][A-Z0-9-]{1,15})',
-                r'sell.*?([A-Z][A-Z0-9-]{1,15})',
-                r'bearish.*?([A-Z][A-Z0-9-]{1,15})',
-                r'negative.*?([A-Z][A-Z0-9-]{1,15})'
-            ]
+            if overlap:
+                logger.warning(f"Found overlap stocks: {overlap} - removing from distribution")
+                # Remove overlap from distribution and replace if needed
+                data["stock_lists"]["distribution"] = [s for s in data["stock_lists"]["distribution"] if
+                                                       s not in overlap]
 
-            accumulation_stocks = []
-            distribution_stocks = []
+                # Fill distribution back to 6 if needed
+                backup_distribution = ['BHARTIARTL', 'IDEA', 'ZOMATO', 'NYKAA', 'PAYTM', 'INDIGO']
+                for stock in backup_distribution:
+                    if (stock not in data["stock_lists"]["accumulation"] and
+                            stock not in data["stock_lists"]["distribution"] and
+                            len(data["stock_lists"]["distribution"]) < 6):
+                        data["stock_lists"]["distribution"].append(stock)
 
-            for pattern in accumulation_patterns:
-                matches = re.findall(pattern, text_content, re.IGNORECASE)
-                for match in matches:
-                    if match in known_stocks and match not in accumulation_stocks:
-                        accumulation_stocks.append(match)
-
-            for pattern in distribution_patterns:
-                matches = re.findall(pattern, text_content, re.IGNORECASE)
-                for match in matches:
-                    if match in known_stocks and match not in distribution_stocks:
-                        distribution_stocks.append(match)
-
-            # Update stock lists if we found pattern-based matches
-            if accumulation_stocks:
-                data["stock_lists"]["accumulation"] = accumulation_stocks[:6]
-            if distribution_stocks:
-                data["stock_lists"]["distribution"] = distribution_stocks[:6]
+            logger.info(f"Final accumulation: {data['stock_lists']['accumulation']}")
+            logger.info(f"Final distribution: {data['stock_lists']['distribution']}")
 
             return data
 
@@ -903,15 +925,17 @@ class MarketIntelligenceEngine:
         }
 
     def _get_fallback_dashboard_data(self) -> Dict:
-        """Updated fallback data using your actual working stock universe"""
+        """Updated fallback data using proper sector separation"""
         return {
             "overall_sentiment": 0.09,
             "red_alerts": 25,
             "major_reversals": 25,
             "institutional_flows": {"fii_positive": 23.6, "dii_flows": 52.0, "retail_flows": 30.0},
             "stock_lists": {
-                "accumulation": ["NTPC", "POWERGRID", "HINDUNILVR", "ITC", "COALINDIA", "TATAPOWER"],
-                "distribution": ["BHARTIARTL", "ZOMATO", "PAYTM", "NYKAA", "INDIGO", "IDEA"]
+                # Power + FMCG for accumulation (bullish)
+                "accumulation": ["NTPC", "POWERGRID", "TATAPOWER", "HINDUNILVR", "ITC", "BRITANNIA"],
+                # Telecom + Consumer Services for distribution (bearish)  
+                "distribution": ["BHARTIARTL", "IDEA", "ZOMATO", "NYKAA", "PAYTM", "INDIGO"]
             },
             "divergent_stocks": 61,
             "price_sentiment_correlation": 68
