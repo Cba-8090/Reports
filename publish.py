@@ -840,52 +840,116 @@ class MarketIntelligenceEngine:
             "smart_money_stocks": ["BOSCHLTD", "BSOFT", "DIXON", "DRREDDY", "GRANULES"]
         }
 
+
+
+
+
     def extract_sector_sentiment_data(self, soup: BeautifulSoup) -> Dict:
-        """Enhanced sector sentiment data extraction"""
+        """FIXED: Extract ALL sectors dynamically from HTML (no hardcoding)"""
         if not soup:
             return self._get_fallback_sector_data()
 
         try:
             data = {
                 "overall_assessment": "MODERATELY BEARISH AND DETERIORATING",
-                "analysis_period": ("2025-04-01", "2025-06-03"),
-                "sector_ratios": {
-                    "power": 50.0,
-                    "fmcg": 18.18,
-                    "metals": 3.0,
-                    "telecom": -50.0,
-                    "consumer_services": -4.0,
-                    "services": -2.0
-                },
-                "turnaround_alerts": {
-                    "consumer_services": -114.3,
-                    "services": -100.0,
-                    "telecom": -25.0
-                },
-                "top_sectors": ["Power", "FMCG", "Metals"],
-                "avoid_sectors": ["Telecom", "Consumer Services", "Services"]
+                "analysis_period": ("2025-04-01", "2025-06-05"),
+                "sector_ratios": {},  # Will be populated dynamically
+                "turnaround_alerts": {},
+                "top_sectors": [],  # Will be determined dynamically
+                "avoid_sectors": [],  # Will be determined dynamically
+                "sector_details": {}  # Full sector information
             }
 
-            # Extract sector ratios from tables
-            tables = soup.find_all('table')
-            for table in tables:
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['td', 'th'])
-                    if len(cells) >= 2:
-                        sector_name = cells[0].get_text(strip=True).lower()
-                        ratio_text = cells[1].get_text(strip=True)
-                        ratio_value = self.extract_numeric_value(ratio_text)
+            # Extract overall assessment
+            summary_element = soup.find('div', class_='summary-text')
+            if summary_element:
+                data["overall_assessment"] = summary_element.get_text(strip=True)
 
-                        if ratio_value is not None:
-                            if 'power' in sector_name:
-                                data["sector_ratios"]["power"] = ratio_value
-                            elif 'fmcg' in sector_name or 'consumer' in sector_name:
-                                data["sector_ratios"]["fmcg"] = ratio_value
-                            elif 'metal' in sector_name:
-                                data["sector_ratios"]["metals"] = ratio_value
-                            elif 'telecom' in sector_name:
-                                data["sector_ratios"]["telecom"] = ratio_value
+            # Extract TOP SECTORS (bullish) dynamically
+            top_sectors_box = soup.find('div', class_='top-sectors-box')
+            if top_sectors_box:
+                sectors = top_sectors_box.find_all('div', class_='top-sector')
+                for sector in sectors:
+                    h4 = sector.find('h4')
+                    if h4:
+                        sector_name = h4.get_text(strip=True).split('.')[1].strip()
+
+                        # Extract ratio
+                        ratio_text = sector.find('p').get_text()
+                        ratio_match = re.search(r'Ratio:\s*([\d.]+)', ratio_text)
+                        ratio = float(ratio_match.group(1)) if ratio_match else 0.0
+
+                        # Store sector data
+                        data["sector_ratios"][sector_name.lower().replace(' ', '_')] = ratio
+                        data["top_sectors"].append(sector_name)
+
+                        # Extract detailed breakdown
+                        breakdown = re.search(r'Bullish:\s*([\d.]+)%.*?Neutral:\s*([\d.]+)%.*?Bearish:\s*([\d.]+)%',
+                                              sector.get_text(), re.DOTALL)
+                        if breakdown:
+                            data["sector_details"][sector_name] = {
+                                "ratio": ratio,
+                                "bullish": float(breakdown.group(1)),
+                                "neutral": float(breakdown.group(2)),
+                                "bearish": float(breakdown.group(3)),
+                                "status": "bullish"
+                            }
+
+            # Extract AVOID SECTORS (bearish) dynamically
+            avoid_sectors_box = soup.find('div', class_='avoid-sectors-box')
+            if avoid_sectors_box:
+                sectors = avoid_sectors_box.find_all('div', class_='avoid-sector')
+                for sector in sectors:
+                    h4 = sector.find('h4')
+                    if h4:
+                        sector_name = h4.get_text(strip=True).split('.')[1].strip()
+
+                        # Extract bearish ratio
+                        ratio_text = sector.find('p').get_text()
+                        ratio_match = re.search(r'Ratio:\s*([\d.]+)', ratio_text)
+                        ratio = -float(ratio_match.group(1)) if ratio_match else 0.0  # Negative for bearish
+
+                        data["sector_ratios"][sector_name.lower().replace(' ', '_')] = ratio
+                        data["avoid_sectors"].append(sector_name)
+
+                        # Extract detailed breakdown
+                        breakdown = re.search(r'Bullish:\s*([\d.]+)%.*?Neutral:\s*([\d.]+)%.*?Bearish:\s*([\d.]+)%',
+                                              sector.get_text(), re.DOTALL)
+                        if breakdown:
+                            data["sector_details"][sector_name] = {
+                                "ratio": abs(ratio),  # Store positive value
+                                "bullish": float(breakdown.group(1)),
+                                "neutral": float(breakdown.group(2)),
+                                "bearish": float(breakdown.group(3)),
+                                "status": "bearish"
+                            }
+
+            # Extract TURNAROUND ALERTS dynamically
+            turnaround_box = soup.find('div', class_='turnaround-box')
+            if turnaround_box:
+                # Bullish turnarounds
+                bullish_candidates = turnaround_box.find_all('div', style=lambda
+                    x: x and 'border-left: 4px solid #1E8449' in x)
+                for candidate in bullish_candidates:
+                    h5 = candidate.find('h5')
+                    if h5:
+                        sector_name = h5.get_text(strip=True).split('(')[0].strip().replace('1. ', '')
+                        strength_match = re.search(r'Strength:\s*([\d.]+)', candidate.get_text())
+                        strength = float(strength_match.group(1)) if strength_match else 0.0
+                        data["turnaround_alerts"][sector_name] = strength
+
+                # Bearish warnings
+                bearish_candidates = turnaround_box.find_all('div', style=lambda
+                    x: x and 'border-left: 4px solid #C0392B' in x)
+                for candidate in bearish_candidates:
+                    h5 = candidate.find('h5')
+                    if h5:
+                        sector_name = h5.get_text(strip=True).split('(')[0].strip().replace('1. ', '').replace('2. ',
+                                                                                                               '').replace(
+                            '3. ', '')
+                        decline_match = re.search(r'declined by ([\d.]+)%', candidate.get_text())
+                        decline = -float(decline_match.group(1)) if decline_match else 0.0
+                        data["turnaround_alerts"][sector_name] = decline
 
             return data
 
@@ -1472,8 +1536,93 @@ class PublicationGenerator:
     def __init__(self, intelligence_engine: MarketIntelligenceEngine):
         self.engine = intelligence_engine
 
+    def generate_dynamic_sector_html(self, sector_data: Dict) -> str:
+        """FIXED: Generate sector cards dynamically based on actual data (no hardcoding)"""
+
+        sector_details = sector_data.get("sector_details", {})
+        sector_ratios = sector_data.get("sector_ratios", {})
+
+        if not sector_ratios:
+            # If no dynamic data available, fall back but with clear indication
+            return '''
+            <div class="sector-card neutral">
+                <h4>DATA LOADING</h4>
+                <div>Analyzing...</div>
+                <small>Dynamic sector data processing</small>
+            </div>'''
+
+        # Sort sectors by performance (best to worst)
+        sorted_sectors = sorted(sector_ratios.items(), key=lambda x: x[1], reverse=True)
+
+        sector_cards_html = ""
+
+        for sector_key, ratio in sorted_sectors:
+            # Find detailed info
+            sector_detail = None
+            for name, detail in sector_details.items():
+                if name.lower().replace(' ', '_').replace('&', '_').replace('__', '_') == sector_key:
+                    sector_detail = detail
+                    break
+
+            # Determine dynamic properties based on ratio
+            if ratio > 0:
+                css_class = "bullish"
+                if ratio >= 3.0:
+                    status_text = "BUY"
+                    label = "TOP PICK"
+                elif ratio >= 2.0:
+                    status_text = "BUY"
+                    label = "STRONG"
+                elif ratio >= 1.0:
+                    status_text = "HOLD"
+                    label = "DEFENSIVE"
+                else:
+                    status_text = "HOLD"
+                    label = "WATCH"
+            else:
+                css_class = "bearish"
+                if abs(ratio) >= 3.0:
+                    status_text = "AVOID"
+                    label = "HIGH RISK"
+                elif abs(ratio) >= 2.0:
+                    status_text = "CAUTION"
+                    label = "WEAK"
+                else:
+                    status_text = "MONITOR"
+                    label = "NEUTRAL"
+
+            # Generate clean display name
+            display_name = sector_key.replace('_', ' ').title()
+
+            # Handle specific sector name mappings
+            name_mappings = {
+                'Fast Moving Consumer Goods': 'FMCG',
+                'Automobile And Auto Components': 'AUTO',
+                'Oil Gas Consumable Fuels': 'OIL & GAS',
+                'Information Technology': 'IT',
+                'Metals Mining': 'METALS',
+                'Construction Materials': 'CONSTRUCTION',
+                'Consumer Services': 'SERVICES',
+                'Financial Services': 'FINANCIALS'
+            }
+
+            for full_name, short_name in name_mappings.items():
+                if full_name.lower().replace(' ', '_') == sector_key:
+                    display_name = short_name
+                    break
+
+            # Add sector card
+            sector_cards_html += f'''
+            <div class="sector-card {css_class}">
+                <h4>{display_name}</h4>
+                <div>{status_text}</div>
+                <small>{abs(ratio):.1f} Ratio | {label}</small>
+            </div>'''
+
+        return sector_cards_html
+    
     def generate_daily_publication(self, analysis_data: Dict, raw_data: Dict, date_str: str) -> str:
-        """Generate comprehensive daily market pulse"""
+        """Generate comprehensive daily market pulse with FIXED dynamic sector intelligence"""
         formatted_date = datetime.strptime(date_str, "%Y%m%d").strftime("%B %d, %Y")
 
         # Extract key data
@@ -1489,278 +1638,332 @@ class PublicationGenerator:
         for i, stock in enumerate(accumulation_stocks):
             sector_desc = "Power/FMCG Leader" if i < 3 else "Defensive Play"
             accumulation_html += f"""
-            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
-                <strong>{stock}</strong> ({sector_desc})
-                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
-            </div>"""
+             <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                 <strong>{stock}</strong> ({sector_desc})
+                 <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BULLISH | Pattern: Accumulation | Flow: Positive</div>
+             </div>"""
 
         distribution_html = ""
         for i, stock in enumerate(distribution_stocks):
             sector_desc = "Telecom/Services Risk" if i < 3 else "Consumer Weakness"
             distribution_html += f"""
-            <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
-                <strong>{stock}</strong> ({sector_desc})
-                <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
-            </div>"""
+             <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; margin: 8px 0;">
+                 <strong>{stock}</strong> ({sector_desc})
+                 <div style="font-size: 0.9em; opacity: 0.8;">Sentiment: BEARISH | Pattern: Distribution | Flow: Negative</div>
+             </div>"""
 
         # System status
         system_status = analysis_data.get("system_status", "WARNING")
         critical_count = analysis_data.get("critical_frameworks", 0)
         divergence_pct = analysis_data.get("summary", {}).get("divergence_percentage", 6000)
 
+        # FIXED: Generate dynamic sector intelligence HTML
+        dynamic_sector_cards = self.generate_dynamic_sector_html(sector_data)
+
         html_content = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Market Pulse - {formatted_date}</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+     <html lang="en">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>Daily Market Pulse - {formatted_date}</title>
+         <style>
+             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
 
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: #333;
-        }}
+             body {{
+                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                 line-height: 1.6; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                 color: #333;
+             }}
 
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 20px; }}
+             .container {{ max-width: 1200px; margin: 0 auto; padding: 20px; }}
 
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;
-            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }}
+             .header {{
+                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                 color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px;
+                 text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+             }}
 
-        .header h1 {{ font-size: 2.5em; margin-bottom: 10px; font-weight: 300; }}
-        .header .subtitle {{ font-size: 1.2em; opacity: 0.9; }}
+             .header h1 {{ font-size: 2.5em; margin-bottom: 10px; font-weight: 300; }}
+             .header .subtitle {{ font-size: 1.2em; opacity: 0.9; }}
 
-        .hero-metrics {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px; margin-bottom: 30px;
-        }}
+             .hero-metrics {{
+                 display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                 gap: 20px; margin-bottom: 30px;
+             }}
 
-        .hero-card {{
-            background: white; padding: 25px; border-radius: 15px; text-align: center;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1); transition: transform 0.3s ease;
-        }}
+             .hero-card {{
+                 background: white; padding: 25px; border-radius: 15px; text-align: center;
+                 box-shadow: 0 8px 25px rgba(0,0,0,0.1); transition: transform 0.3s ease;
+             }}
 
-        .hero-card:hover {{ transform: translateY(-5px); }}
-        .hero-card h3 {{ color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; }}
+             .hero-card:hover {{ transform: translateY(-5px); }}
+             .hero-card h3 {{ color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; }}
 
-        .hero-value {{ font-size: 2.2em; font-weight: bold; margin-bottom: 10px; }}
-        .hero-value.critical {{ color: #e74c3c; }}
-        .hero-value.warning {{ color: #f39c12; }}
-        .hero-value.normal {{ color: #27ae60; }}
+             .hero-value {{ font-size: 2.2em; font-weight: bold; margin-bottom: 10px; }}
+             .hero-value.critical {{ color: #e74c3c; }}
+             .hero-value.warning {{ color: #f39c12; }}
+             .hero-value.normal {{ color: #27ae60; }}
 
-        .divergence-alert {{
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-            padding: 25px; border-radius: 15px; margin-bottom: 30px;
-            border-left: 5px solid #e74c3c;
-        }}
+             .divergence-alert {{
+                 background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+                 padding: 25px; border-radius: 15px; margin-bottom: 30px;
+                 border-left: 5px solid #e74c3c;
+             }}
 
-        .section {{
-            background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }}
+             .section {{
+                 background: white; padding: 25px; border-radius: 15px; margin-bottom: 25px;
+                 box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+             }}
 
-        .section h2 {{
-            color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
-        }}
+             .section h2 {{
+                 color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px;
+                 border-bottom: 2px solid #ecf0f1;
+             }}
 
-        .framework-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px; margin: 20px 0;
-        }}
+             .framework-grid {{
+                 display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                 gap: 20px; margin: 20px 0;
+             }}
 
-        .framework-card {{
-            padding: 20px; border-radius: 10px; border-left: 5px solid #3498db;
-        }}
+             .framework-card {{
+                 padding: 20px; border-radius: 10px; border-left: 5px solid #3498db;
+             }}
 
-        .framework-card.critical {{ border-left-color: #e74c3c; background: #ffeaa7; }}
-        .framework-card.warning {{ border-left-color: #f39c12; background: #fff3cd; }}
-        .framework-card.normal {{ border-left-color: #27ae60; background: #e8f5e8; }}
+             .framework-card.critical {{ border-left-color: #e74c3c; background: #ffeaa7; }}
+             .framework-card.warning {{ border-left-color: #f39c12; background: #fff3cd; }}
+             .framework-card.normal {{ border-left-color: #27ae60; background: #e8f5e8; }}
 
-        .stock-grid {{
-            display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;
-        }}
+             .stock-grid {{
+                 display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;
+             }}
 
-        .stock-section {{
-            padding: 25px; border-radius: 15px; color: white;
-        }}
+             .stock-section {{
+                 padding: 25px; border-radius: 15px; color: white;
+             }}
 
-        .accumulation {{ background: linear-gradient(135deg, #27ae60, #2ecc71); }}
-        .distribution {{ background: linear-gradient(135deg, #e74c3c, #c0392b); }}
+             .accumulation {{ background: linear-gradient(135deg, #27ae60, #2ecc71); }}
+             .distribution {{ background: linear-gradient(135deg, #e74c3c, #c0392b); }}
 
-        .sector-grid {{
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px; margin: 20px 0;
-        }}
+             .sector-grid {{
+                 display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                 gap: 15px; margin: 20px 0;
+             }}
 
-        .sector-card {{
-            padding: 15px; border-radius: 10px; text-align: center;
-            color: white; font-weight: bold;
-        }}
+             .sector-card {{
+                 padding: 15px; border-radius: 10px; text-align: center;
+                 color: white; font-weight: bold; min-height: 100px;
+                 display: flex; flex-direction: column; justify-content: center;
+                 transition: transform 0.3s ease, box-shadow 0.3s ease;
+             }}
 
-        .sector-card.bullish {{ background: linear-gradient(135deg, #27ae60, #2ecc71); }}
-        .sector-card.bearish {{ background: linear-gradient(135deg, #e74c3c, #c0392b); }}
-        .sector-card.neutral {{ background: linear-gradient(135deg, #f39c12, #e67e22); }}
+             .sector-card:hover {{ 
+                 transform: translateY(-3px); 
+                 box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+             }}
 
-        .action-items {{
-            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-            color: white; padding: 25px; border-radius: 15px; margin-top: 30px;
-        }}
+             .sector-card.bullish {{ background: linear-gradient(135deg, #27ae60, #2ecc71); }}
+             .sector-card.bearish {{ background: linear-gradient(135deg, #e74c3c, #c0392b); }}
+             .sector-card.neutral {{ background: linear-gradient(135deg, #f39c12, #e67e22); }}
 
-        .action-list {{ list-style: none; }}
-        .action-list li {{ margin: 10px 0; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }}
+             .sector-card h4 {{ margin-bottom: 8px; font-size: 1.1em; }}
+             .sector-card small {{ opacity: 0.9; font-size: 0.8em; }}
 
-        .footer {{ text-align: center; color: #7f8c8d; margin-top: 30px; padding: 20px; }}
+             .turnaround-section {{
+                 background: linear-gradient(135deg, #9b59b6, #8e44ad);
+                 color: white; padding: 20px; border-radius: 15px; margin-top: 20px;
+             }}
 
-        @media (max-width: 768px) {{
-            .hero-metrics, .stock-grid {{ grid-template-columns: 1fr; }}
-            .header h1 {{ font-size: 2em; }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <h1>📊 Daily Market Pulse</h1>
-            <p class="subtitle">Comprehensive Market Intelligence | {formatted_date}</p>
-            <p style="margin-top: 10px; font-size: 0.9em;">Multi-Dimensional Analysis • Real-Time Intelligence • Professional Grade</p>
-        </header>
+             .turnaround-grid {{
+                 display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                 gap: 15px; margin-top: 15px;
+             }}
 
-        <!-- Hero Metrics Dashboard -->
-        <div class="hero-metrics">
-            <div class="hero-card">
-                <h3>🚨 System Alert Status</h3>
-                <div class="hero-value {system_status.lower()}">{system_status}</div>
-                <p>{critical_count}/7 Critical Frameworks</p>
-            </div>
+             .turnaround-card {{
+                 background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px;
+                 backdrop-filter: blur(10px); border-left: 4px solid;
+             }}
 
-            <div class="hero-card">
-                <h3>🌍 Global vs Local Sentiment</h3>
-                <div class="hero-value critical">{divergence_pct:,.0f}%</div>
-                <p>Divergence: {global_data.get('sentiment_score', 6.0)} vs {raw_data.get('market_trend', {}).get('sentiment_score', 0.09)}</p>
-            </div>
+             .turnaround-card.bullish-turn {{ border-left-color: #2ecc71; }}
+             .turnaround-card.bearish-turn {{ border-left-color: #e74c3c; }}
 
-            <div class="hero-card">
-                <h3>💳 Credit Data Integrity</h3>
-                <div class="hero-value critical">126%</div>
-                <p>HYG Spread Divergence</p>
-            </div>
+             .action-items {{
+                 background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+                 color: white; padding: 25px; border-radius: 15px; margin-top: 30px;
+             }}
 
-            <div class="hero-card">
-                <h3>🔬 MRN Regime Status</h3>
-                <div class="hero-value warning">{raw_data.get('nifty_mrn', {}).get('mi_duration', 14)}/21</div>
-                <p>Days (Transition {raw_data.get('nifty_mrn', {}).get('transition_probability', 'High')})</p>
-            </div>
-        </div>
+             .action-list {{ list-style: none; }}
+             .action-list li {{ margin: 10px 0; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }}
 
-        <!-- Critical Divergence Alert -->
-        <div class="divergence-alert">
-            <h2>🚨 UNPRECEDENTED MARKET INTELLIGENCE ALERT</h2>
-            <p><strong>BOTTOM LINE UP FRONT:</strong> {critical_count} analytical frameworks showing systematic contradictions, creating exceptional arbitrage opportunities. Global markets bullish ({global_data.get('sentiment_score', 6.0)}) while local markets bearish ({raw_data.get('market_trend', {}).get('sentiment_score', 0.09)}). Economic assessments optimistic while indicators bearish. Immediate multi-dimensional positioning required.</p>
-        </div>
+             .footer {{ text-align: center; color: #7f8c8d; margin-top: 30px; padding: 20px; }}
 
-        <!-- Framework Analysis -->
-        <div class="section">
-            <h2>🔍 Seven-Framework Contradiction Analysis</h2>
+             @media (max-width: 768px) {{
+                 .hero-metrics, .stock-grid {{ grid-template-columns: 1fr; }}
+                 .header h1 {{ font-size: 2em; }}
+                 .sector-grid {{ grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }}
+             }}
+         </style>
+     </head>
+     <body>
+         <div class="container">
+             <!-- Header -->
+             <header class="header">
+                 <h1>📊 Daily Market Pulse</h1>
+                 <p class="subtitle">Comprehensive Market Intelligence | {formatted_date}</p>
+                 <p style="margin-top: 10px; font-size: 0.9em;">Multi-Dimensional Analysis • Real-Time Intelligence • Professional Grade</p>
+             </header>
 
-            <div class="framework-grid">'''
+             <!-- Hero Metrics Dashboard -->
+             <div class="hero-metrics">
+                 <div class="hero-card">
+                     <h3>🚨 System Alert Status</h3>
+                     <div class="hero-value {system_status.lower()}">{system_status}</div>
+                     <p>{critical_count}/7 Critical Frameworks</p>
+                 </div>
+
+                 <div class="hero-card">
+                     <h3>🌍 Global vs Local Sentiment</h3>
+                     <div class="hero-value critical">{divergence_pct:,.0f}%</div>
+                     <p>Divergence: {global_data.get('sentiment_score', 6.0)} vs {raw_data.get('market_trend', {}).get('sentiment_score', 0.09)}</p>
+                 </div>
+
+                 <div class="hero-card">
+                     <h3>💳 Credit Data Integrity</h3>
+                     <div class="hero-value critical">126%</div>
+                     <p>HYG Spread Divergence</p>
+                 </div>
+
+                 <div class="hero-card">
+                     <h3>🔬 MRN Regime Status</h3>
+                     <div class="hero-value warning">{raw_data.get('nifty_mrn', {}).get('mi_duration', 14)}/21</div>
+                     <p>Days (Transition {raw_data.get('nifty_mrn', {}).get('transition_probability', 'High')})</p>
+                 </div>
+             </div>
+
+             <!-- Critical Divergence Alert -->
+             <div class="divergence-alert">
+                 <h2>🚨 UNPRECEDENTED MARKET INTELLIGENCE ALERT</h2>
+                 <p><strong>BOTTOM LINE UP FRONT:</strong> {critical_count} analytical frameworks showing systematic contradictions, creating exceptional arbitrage opportunities. Global markets bullish ({global_data.get('sentiment_score', 6.0)}) while local markets bearish ({raw_data.get('market_trend', {}).get('sentiment_score', 0.09)}). Economic assessments optimistic while indicators bearish. Immediate multi-dimensional positioning required.</p>
+             </div>
+
+             <!-- Framework Analysis -->
+             <div class="section">
+                 <h2>🔍 Seven-Framework Contradiction Analysis</h2>
+
+                 <div class="framework-grid">'''
 
         # Add framework cards
         for name, framework_data in analysis_data.get("frameworks", {}).items():
             status_class = framework_data["status"].lower()
+            display_name = name.replace("_", " ").title()
             html_content += f'''
-                <div class="framework-card {status_class}">
-                    <h4>{framework_data.get("display_name", name.replace("_", " ").title())}</h4>
-                    <div class="hero-value {status_class}">{framework_data["level"]:.1f}</div>
-                    <p><strong>Status:</strong> {framework_data["status"]}</p>
-                    <p><strong>Threshold:</strong> {framework_data["threshold"]}</p>
-                    <p>{framework_data["implication"]}</p>
-                </div>'''
+                     <div class="framework-card {status_class}">
+                         <h4>{display_name}</h4>
+                         <div class="hero-value {status_class}">{framework_data["level"]:.1f}</div>
+                         <p><strong>Status:</strong> {framework_data["status"]}</p>
+                         <p><strong>Threshold:</strong> {framework_data["threshold"]}</p>
+                         <p>{framework_data["implication"]}</p>
+                     </div>'''
 
         html_content += '''
-            </div>
-        </div>
+                 </div>
+             </div>
 
-        <!-- Stock Intelligence -->
-        <div class="section">
-            <h2>📈 Daily Stock Intelligence</h2>
+             <!-- Stock Intelligence -->
+             <div class="section">
+                 <h2>📈 Daily Stock Intelligence</h2>
 
-            <div class="stock-grid">
-                <div class="stock-section accumulation">
-                    <h3>🔥 TOP ACCUMULATION TARGETS</h3>
-                    <p style="margin-bottom: 20px;">Based on sentiment analysis & institutional flows</p>
-                    ''' + accumulation_html + '''
-                </div>
+                 <div class="stock-grid">
+                     <div class="stock-section accumulation">
+                         <h3>🔥 TOP ACCUMULATION TARGETS</h3>
+                         <p style="margin-bottom: 20px;">Based on sentiment analysis & institutional flows</p>
+                         ''' + accumulation_html + '''
+                     </div>
 
-                <div class="stock-section distribution">
-                    <h3>⚠️ TOP EXIT/SHORT TARGETS</h3>
-                    <p style="margin-bottom: 20px;">Based on sentiment deterioration & selling</p>
-                    ''' + distribution_html + '''
-                </div>
-            </div>
-        </div>
+                     <div class="stock-section distribution">
+                         <h3>⚠️ TOP EXIT/SHORT TARGETS</h3>
+                         <p style="margin-bottom: 20px;">Based on sentiment deterioration & selling</p>
+                         ''' + distribution_html + '''
+                     </div>
+                 </div>
+             </div>
 
-        <!-- Sector Intelligence -->
-        <div class="section">
-            <h2>🏭 Sector Intelligence Dashboard</h2>
-            <p><strong>Assessment:</strong> ''' + sector_data.get('overall_assessment',
-                                                                  'Moderately Bearish and Deteriorating') + '''</p>
+             <!-- FIXED: Dynamic Sector Intelligence -->
+             <div class="section">
+                 <h2>🏭 Sector Intelligence Dashboard</h2>
+                 <p><strong>Assessment:</strong> ''' + sector_data.get('overall_assessment',
+                                                                       'MODERATELY BEARISH AND DETERIORATING') + '''</p>
+                 <p><strong>Analysis Period:</strong> ''' + str(
+            sector_data.get('analysis_period', ('2025-04-01', '2025-06-05'))) + '''</p>
 
-            <div class="sector-grid">
-                <div class="sector-card bullish">
-                    <h4>POWER</h4>
-                    <div>''' + str(sector_data.get('sector_ratios', {}).get('power', 50.0)) + ''' Ratio</div>
-                    <small>TOP PICK</small>
-                </div>
-                <div class="sector-card bullish">
-                    <h4>FMCG</h4>
-                    <div>''' + str(sector_data.get('sector_ratios', {}).get('fmcg', 18.18)) + ''' Ratio</div>
-                    <small>DEFENSIVE</small>
-                </div>
-                <div class="sector-card bearish">
-                    <h4>TELECOM</h4>
-                    <div>AVOID</div>
-                    <small>''' + str(sector_data.get('sector_ratios', {}).get('telecom', -50.0)) + ''' Ratio</small>
-                </div>
-                <div class="sector-card bearish">
-                    <h4>SERVICES</h4>
-                    <div>AVOID</div>
-                    <small>''' + str(sector_data.get('turnaround_alerts', {}).get('services', -100)) + '''% Decline</small>
-                </div>
-            </div>
-        </div>
+                 <div class="sector-grid">
+                     ''' + dynamic_sector_cards + '''
+                 </div>
 
-        <!-- Immediate Action Items -->
-        <div class="action-items">
-            <h3>⚡ IMMEDIATE ACTION ITEMS (Next 4 Hours)</h3>
-            <ul class="action-list">
-                <li><strong>🎯 Master Arbitrage:</strong> Position across all ''' + str(critical_count) + ''' framework contradictions</li>
-                <li><strong>📈 Stock Actions:</strong> Accumulate Power sector (''' + ', '.join(
-            accumulation_stocks[:3]) + '''), Exit Telecom (''' + ', '.join(distribution_stocks[:2]) + ''')</li>
-                <li><strong>💳 Credit Short:</strong> HYG spread expected to widen to calculated 7.42%</li>
-                <li><strong>🔬 MRN Transition:</strong> Prepare for regime change (volatility expansion)</li>
-                <li><strong>🏭 Sector Rotation:</strong> Long Power/FMCG, Short Consumer Services/Telecom</li>
-                <li><strong>🌍 Global-Local:</strong> International overweight vs local underweight</li>
-                <li><strong>📊 Data Quality:</strong> Monitor Treasury data correction impact</li>
-                <li><strong>⚠️ Risk Management:</strong> High volatility expected across all timeframes</li>
-            </ul>
-        </div>
+                 <!-- Dynamic Turnaround Alerts -->'''
 
-        <!-- Footer -->
-        <div class="footer">
-            <p><strong>Market Intelligence Publication System</strong> | Generated: ''' + datetime.now().strftime(
+        # Add turnaround alerts dynamically
+        turnaround_alerts = sector_data.get('turnaround_alerts', {})
+        if turnaround_alerts:
+            html_content += '''
+                 <div class="turnaround-section">
+                     <h3>📊 Sector Turnaround Alerts</h3>
+                     <div class="turnaround-grid">'''
+
+            for sector, change in turnaround_alerts.items():
+                alert_class = "bullish-turn" if change > 0 else "bearish-turn"
+                arrow = "📈" if change > 0 else "📉"
+                change_text = f"+{change:.1f}" if change > 0 else f"{change:.1f}"
+                alert_type = "OPPORTUNITY" if change > 0 else "WARNING"
+
+                html_content += f'''
+                         <div class="turnaround-card {alert_class}">
+                             <h4>{arrow} {sector}</h4>
+                             <div style="font-size: 1.2em; margin: 5px 0;">{change_text}%</div>
+                             <small>{alert_type}</small>
+                         </div>'''
+
+            html_content += '''
+                     </div>
+                 </div>'''
+
+        html_content += '''
+             </div>
+
+             <!-- Immediate Action Items -->
+             <div class="action-items">
+                 <h3>⚡ IMMEDIATE ACTION ITEMS (Next 4 Hours)</h3>
+                 <ul class="action-list">
+                     <li><strong>🎯 Master Arbitrage:</strong> Position across all ''' + str(critical_count) + ''' framework contradictions</li>
+                     <li><strong>📈 Stock Actions:</strong> Accumulate ''' + ', '.join(
+            accumulation_stocks[:3]) + ''', Exit ''' + ', '.join(distribution_stocks[:2]) + '''</li>
+                     <li><strong>💳 Credit Short:</strong> HYG spread expected to widen to calculated 7.42%</li>
+                     <li><strong>🔬 MRN Transition:</strong> Prepare for regime change (volatility expansion)</li>'''
+
+        # Add dynamic sector actions
+        top_sectors = sector_data.get('top_sectors', [])[:2]
+        avoid_sectors = sector_data.get('avoid_sectors', [])[:2]
+
+        if top_sectors and avoid_sectors:
+            html_content += f'''
+                     <li><strong>🏭 Sector Rotation:</strong> Long {'/'.join(top_sectors)}, Short {'/'.join(avoid_sectors)}</li>'''
+
+        html_content += f'''
+                     <li><strong>🌍 Global-Local:</strong> International overweight vs local underweight</li>
+                     <li><strong>📊 Data Quality:</strong> Monitor Treasury data correction impact</li>
+                     <li><strong>⚠️ Risk Management:</strong> High volatility expected across all timeframes</li>
+                 </ul>
+             </div>
+
+             <!-- Footer -->
+             <div class="footer">
+                 <p><strong>Market Intelligence Publication System</strong> | Generated: ''' + datetime.now().strftime(
             '%Y-%m-%d %H:%M:%S') + '''</p>
-            <p>Sources: 9 Integrated Reports • 7 Analytical Frameworks • Real-Time Intelligence</p>
-            <p><strong>Next Update:</strong> Tomorrow 06:00 IST | <strong>Emergency Alerts:</strong> Real-Time</p>
-        </div>
-    </div>
-</body>
-</html>'''
+                 <p>Sources: 9 Integrated Reports • 7 Analytical Frameworks • Real-Time Intelligence</p>
+                 <p><strong>Next Update:</strong> Tomorrow 06:00 IST | <strong>Emergency Alerts:</strong> Real-Time</p>
+             </div>
+         </div>
+     </body>
+     </html>'''
 
         return html_content
 
