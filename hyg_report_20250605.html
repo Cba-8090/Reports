@@ -1,0 +1,793 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HYG Market Alert Report - 2025-06-04</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .report-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .report-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .alert-badge {
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+            min-width: 180px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .alert-badge.extreme_danger { background: linear-gradient(135deg, #ff4757, #c44569); }
+        .alert-badge.high_danger { background: linear-gradient(135deg, #ff6b35, #f7971e); }
+        .alert-badge.moderate_watch { background: linear-gradient(135deg, #ffa502, #ff6348); color: #fff; }
+        .alert-badge.normal { background: linear-gradient(135deg, #26de81, #20bf6b); }
+        .alert-badge.unknown { background: linear-gradient(135deg, #a4b0be, #747d8c); }
+
+        .executive-summary, .market-overview, .charts-section, .recommendations, .data-quality {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 5px solid #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+
+        .metric-change {
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .metric-status.danger { color: #e74c3c; font-weight: bold; }
+        .metric-status.warning { color: #f39c12; font-weight: bold; }
+        .metric-status.normal { color: #27ae60; font-weight: bold; }
+        .metric-status.opportunity { color: #8e44ad; font-weight: bold; }
+
+        .component-data {
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+
+        .action-text {
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .chart-container {
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            position: relative;
+            height: 450px;
+        }
+
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+            font-size: 1.3em;
+        }
+
+        .volatility-guide, .correlation-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .volatility-guide h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .volatility-guide ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .volatility-guide li {
+            padding: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .quality-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .quality-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #28a745;
+        }
+
+        .quality-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #28a745;
+            margin-top: 10px;
+        }
+
+        .alerts-section {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            color: #2c3e50;
+        }
+
+        .alert-item, .pattern-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 5px solid #ff4757;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .no-alerts {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border-left: 5px solid #28a745;
+        }
+
+        .report-footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .footer-content p {
+            margin: 8px 0;
+        }
+
+        .change-positive { color: #27ae60; font-weight: bold; }
+        .change-negative { color: #e74c3c; font-weight: bold; }
+        .change-neutral { color: #666; }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .summary-grid, .quality-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+                padding: 15px;
+            }
+
+            .report-header h1 {
+                font-size: 2em;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="report-header">
+            <div class="header-content">
+                <div>
+                    <h1>📊 HYG Market Intelligence Report</h1>
+                    <p class="subtitle">Professional Credit Spread Analysis & Risk Assessment</p>
+                </div>
+                <div class="header-info">
+                    <div class="date-info">
+                        <strong>Report Date:</strong> June 06, 2025<br>
+                        <strong>Data As Of:</strong> 2025-06-04
+                    </div>
+                    <div class="alert-badge moderate_watch">
+                        🟡 MODERATE WATCH
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Executive Summary -->
+        <section class="executive-summary">
+            <h2>🎯 Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Current HYG Spread</h3>
+                    <div class="metric-value">3.23%</div>
+                    <div class="metric-change change-positive">+0.04% from previous day</div>
+                    <div class="metric-status normal">Elevated Risk</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Alert Level</h3>
+                    <div class="metric-value">MODERATE WATCH</div>
+                    <div class="metric-confidence">Active Alerts: 1</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Market Components</h3>
+                    <div class="component-data">
+                        <div>HY Yield: 7.33%</div>
+                        <div>10Y Treasury: 4.37%</div>
+                        <div>Spread Calc: 2.96%</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <h3>Recommended Action</h3>
+                    <div class="action-text">Monitor closely, reduce leverage</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Market Data Table -->
+        <section class="market-overview">
+            <h2>📈 Market Data Overview</h2>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Current Value</th>
+                            <th>Previous Day</th>
+                            <th>Change</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>HYG Spread</strong></td>
+                            <td>3.23%</td>
+                            <td>3.19%</td>
+                            <td class="change-positive">+0.04%</td>
+                            <td>Elevated Risk</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HY Yield</strong></td>
+                            <td>7.33%</td>
+                            <td>7.38%</td>
+                            <td class="change-negative">-0.05%</td>
+                            <td>Moderate Risk</td>
+                        </tr>
+                        <tr>
+                            <td><strong>10Y Treasury</strong></td>
+                            <td>4.37%</td>
+                            <td>4.37%</td>
+                            <td class="change-neutral">+0.00%</td>
+                            <td>Normal</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Calculated Spread</strong></td>
+                            <td>2.96%</td>
+                            <td>3.01%</td>
+                            <td class="change-positive">-0.05%</td>
+                            <td>✅ Consistent</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <h2>📊 Interactive Charts & Analysis</h2>
+
+            <!-- HYG Spread Chart -->
+            <div class="chart-container">
+                <h3>HYG Spread Trend with Moving Averages</h3>
+                <canvas id="hygSpreadChart"></canvas>
+            </div>
+
+            <!-- Yield Components Chart -->
+            <div class="chart-container">
+                <h3>Yield Components Analysis</h3>
+                <canvas id="yieldChart"></canvas>
+            </div>
+
+            <!-- Volatility Chart -->
+            <div class="chart-container">
+                <h3>Market Volatility Indicator (20-Day Rolling)</h3>
+                <canvas id="volatilityChart"></canvas>
+                <div class="volatility-guide">
+                    <h4>Volatility Interpretation:</h4>
+                    <ul>
+                        <li><strong>&lt; 15:</strong> 🟢 Normal market conditions</li>
+                        <li><strong>15-25:</strong> 🟡 Elevated uncertainty</li>
+                        <li><strong>25-35:</strong> 🟠 Market stress emerging</li>
+                        <li><strong>&gt; 35:</strong> 🔴 Significant stress/crisis</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Correlation Analysis -->
+            <div class="correlation-container">
+                <h3>Market Correlation Analysis</h3>
+                
+            <div class="correlation-analysis">
+                <h4>Key Market Correlations</h4>
+                <div class="correlation-grid">
+            
+                <div class="correlation-card correlation-negative">
+                    <div class="correlation-label">HYG vs Treasury</div>
+                    <div class="correlation-value">-0.894</div>
+                    <div class="correlation-desc">Strong -</div>
+                </div>
+                
+                <div class="correlation-card correlation-positive">
+                    <div class="correlation-label">HYG vs HY Yield</div>
+                    <div class="correlation-value">0.908</div>
+                    <div class="correlation-desc">Strong +</div>
+                </div>
+                
+                <div class="correlation-card correlation-negative">
+                    <div class="correlation-label">Treasury vs HY Yield</div>
+                    <div class="correlation-value">-0.679</div>
+                    <div class="correlation-desc">Moderate -</div>
+                </div>
+                
+                </div>
+                <div class="correlation-legend">
+                    <h5>Interpretation Guide:</h5>
+                    <ul>
+                        <li><strong>Strong Positive (>0.7):</strong> Assets move together strongly</li>
+                        <li><strong>Moderate Positive (0.3-0.7):</strong> Some positive relationship</li>
+                        <li><strong>Weak (-0.3 to 0.3):</strong> Little relationship</li>
+                        <li><strong>Negative (<-0.3):</strong> Assets move in opposite directions</li>
+                    </ul>
+                </div>
+            </div>
+            
+            </div>
+        </section>
+
+        <!-- Alert Analysis -->
+        <section class="alerts-section"><h2>🚨 Active Alerts & Patterns</h2><h3>⚠️ Active Alerts</h3>
+                <div class="alert-item">
+                    <div class="alert-header">
+                        <span class="alert-icon">🟡</span>
+                        <strong>MODERATE WATCH</strong>
+                        <span class="alert-confidence">
+                            Confidence: 75%
+                        </span>
+                    </div>
+                    <div class="alert-content">
+                        <p><strong>Condition:</strong> HYG spread 3.23% in MODERATE_WATCH range</p>
+                        <p><strong>Recommended Action:</strong> Monitor closely, reduce leverage</p>
+                        <p><strong>Expected Timeline:</strong> 2-12 weeks</p>
+                    </div>
+                </div>
+                </section>
+
+        <!-- Recommendations -->
+        <section class="recommendations">
+            <h2>💡 Strategic Recommendations</h2>
+            <div class="recommendations-list"><ul><li>📋 Monitor positions closely</li><li>📋 Reduce leverage gradually</li><li>📋 Avoid new speculative positions</li><li>📋 Maintain defensive allocation</li><li>📋 Review risk management protocols</li><li>📋 Watch for pattern changes</li></ul></div>
+        </section>
+
+        <!-- Data Quality -->
+        <section class="data-quality">
+            <h2>📊 Data Quality Assessment</h2>
+            <div class="quality-grid">
+                <div class="quality-card">
+                    <h4>Historical Records</h4>
+                    <div class="quality-value">31</div>
+                </div>
+                <div class="quality-card">
+                    <h4>Latest Data Age</h4>
+                    <div class="quality-value">2 days</div>
+                </div>
+                <div class="quality-card">
+                    <h4>Data Completeness</h4>
+                    <div class="quality-value">80.6%</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <div class="footer-content">
+                <p><strong>HYG Market Intelligence System</strong> | Generated: 2025-06-06 07:28:56</p>
+                <p><strong>Disclaimer:</strong> This report provides market analysis for informational purposes only. 
+                   Investment decisions should be made based on individual circumstances and risk tolerance.</p>
+                <p><strong>Data Sources:</strong> Federal Reserve Economic Data (FRED) | ICE BofA Indices</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Chart data from database
+        const chartData = {"dates": ["2025-04-24", "2025-04-25", "2025-04-28", "2025-04-29", "2025-04-30", "2025-05-01", "2025-05-02", "2025-05-05", "2025-05-06", "2025-05-07", "2025-05-08", "2025-05-09", "2025-05-12", "2025-05-13", "2025-05-14", "2025-05-15", "2025-05-16", "2025-05-19", "2025-05-20", "2025-05-21", "2025-05-22", "2025-05-23", "2025-05-26", "2025-05-27", "2025-05-28", "2025-05-29", "2025-05-30", "2025-05-31", "2025-06-02", "2025-06-03", "2025-06-04"], "hyg_spread": [3.73, 3.67, 3.73, 3.74, 3.94, 3.78, 3.6, 3.6, 3.66, 3.67, 3.51, 3.53, 3.15, 3.09, 3.1, 3.2, 3.16, 3.21, 3.2, 3.25, 3.32, 3.4, 3.4, 3.24, 3.23, 3.22, 3.31, 3.32, 3.27, 3.19, 3.23], "hy_yield": [7.74, 7.63, 7.6, 7.59, 7.84, 7.77, 7.71, 7.72, 7.72, 7.73, 7.71, 7.71, 7.4, 7.35, 7.39, 7.39, 7.37, 7.41, 7.4, 7.53, 7.56, 7.63, 7.63, 7.42, 7.43, 7.34, 7.38, 7.44, 7.42, 7.38, 7.33], "treasury_10y": [4.32, 4.29, 4.23, 4.19, 4.17, 4.25, 4.33, 4.36, 4.3, 4.26, 4.37, 4.37, 4.45, 4.49, 4.53, 4.45, 4.43, 4.46, 4.48, 4.58, 4.54, null, null, null, 4.47, 4.43, 4.41, null, null, null, 4.37], "calculated_spread": [3.42, 3.34, 3.369999999999999, 3.3999999999999995, 3.67, 3.5199999999999996, 3.38, 3.3599999999999994, 3.42, 3.4700000000000006, 3.34, 3.34, 2.95, 2.8599999999999994, 2.8599999999999994, 2.9399999999999995, 2.9400000000000004, 2.95, 2.92, 2.95, 3.0199999999999996, null, null, null, 2.96, 2.91, 2.9699999999999998, null, null, null, 2.96], "hyg_spread_ma20": [null, null, null, null, 3.7619999999999996, 3.765, 3.7414285714285715, 3.72375, 3.716666666666667, 3.7119999999999997, 3.693636363636364, 3.6799999999999997, 3.6392307692307693, 3.6, 3.566666666666667, 3.54375, 3.521176470588235, 3.503888888888889, 3.487894736842105, 3.476, 3.4555, 3.4419999999999993, 3.4255000000000004, 3.4004999999999996, 3.3649999999999998, 3.3369999999999997, 3.3225000000000002, 3.3085, 3.289, 3.2649999999999997, 3.251], "hyg_spread_ma50": [null, null, null, null, null, null, null, null, null, 3.7119999999999997, 3.693636363636364, 3.6799999999999997, 3.6392307692307693, 3.6, 3.566666666666667, 3.54375, 3.521176470588235, 3.503888888888889, 3.487894736842105, 3.476, 3.468571428571429, 3.4654545454545453, 3.462608695652174, 3.453333333333333, 3.4444, 3.435769230769231, 3.431111111111111, 3.427142857142857, 3.421724137931035, 3.414, 3.4080645161290324], "hyg_spread_volatility": [null, null, null, null, 0.10329569206893377, 0.09268225288586801, 0.1051076545624487, 0.10940586299254189, 0.10452272480183432, 0.09964381008817799, 0.11245200996627207, 0.11716344450071765, 0.184908154609324, 0.23045106271764587, 0.2568675775199206, 0.26454678225221345, 0.27253170349844574, 0.27437927568988263, 0.2756120249627973, 0.2734843399731077, 0.2687686346048743, 0.2641690049152148, 0.2553939165907813, 0.24733261218980315, 0.2146110312561823, 0.19306666424348148, 0.18289700869471215, 0.1708577432282557, 0.14955724128591216, 0.12098281739678193, 0.10646966457016827], "alert_zones": {"extreme_danger": 2.8, "high_danger": 3.2, "normal_lower": 3.5, "normal_upper": 4.0, "early_warning": 4.5, "crisis": 7.0}};
+
+        // Error handling for chart data
+        if (chartData.error) {
+            console.error('Chart data error:', chartData.error);
+            document.querySelectorAll('.chart-container canvas').forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ff4444';
+                ctx.font = '16px Arial';
+                ctx.fillText('Chart data unavailable: ' + chartData.error, 20, 50);
+            });
+        } else {
+            
+        // Chart configuration defaults
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        Chart.defaults.color = '#333';
+        Chart.defaults.elements.point.radius = 2;
+        Chart.defaults.elements.point.hoverRadius = 6;
+
+        // HYG Spread Chart with Moving Averages
+        try {
+            const hygSpreadCtx = document.getElementById('hygSpreadChart').getContext('2d');
+            const hygSpreadChart = new Chart(hygSpreadCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: 'HYG Spread',
+                        data: chartData.hyg_spread,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        spanGaps: true
+                    }, {
+                        label: '20-Day MA',
+                        data: chartData.hyg_spread_ma20,
+                        borderColor: '#ffa502',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.3,
+                        spanGaps: true,
+                        pointRadius: 0
+                    }, {
+                        label: '50-Day MA',
+                        data: chartData.hyg_spread_ma50,
+                        borderColor: '#ff6b35',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.3,
+                        spanGaps: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'HYG Spread Trend Analysis',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y === null) return null;
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Spread (%)',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error creating HYG Spread chart:', error);
+        }
+
+        // Yield Components Chart
+        try {
+            const yieldCtx = document.getElementById('yieldChart').getContext('2d');
+            const yieldChart = new Chart(yieldCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: 'HY Yield',
+                        data: chartData.hy_yield,
+                        borderColor: '#26de81',
+                        backgroundColor: 'rgba(38, 222, 129, 0.1)',
+                        borderWidth: 3,
+                        yAxisID: 'y',
+                        spanGaps: true
+                    }, {
+                        label: '10Y Treasury',
+                        data: chartData.treasury_10y,
+                        borderColor: '#4834d4',
+                        backgroundColor: 'rgba(72, 52, 212, 0.1)',
+                        borderWidth: 3,
+                        yAxisID: 'y',
+                        spanGaps: true
+                    }, {
+                        label: 'Calculated Spread',
+                        data: chartData.calculated_spread,
+                        borderColor: '#ff9ff3',
+                        backgroundColor: 'rgba(255, 159, 243, 0.1)',
+                        borderWidth: 2,
+                        yAxisID: 'y1',
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Yield Components & Spread Analysis',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y === null) return null;
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Yield (%)',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Spread (%)',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error creating Yield chart:', error);
+        }
+
+        // Volatility Chart
+        try {
+            const volatilityCtx = document.getElementById('volatilityChart').getContext('2d');
+            const volatilityChart = new Chart(volatilityCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [{
+                        label: 'HYG Volatility (20-Day)',
+                        data: chartData.hyg_spread_volatility,
+                        borderColor: '#ff6b35',
+                        backgroundColor: 'rgba(255, 107, 53, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Market Volatility Indicator',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y === null) return null;
+                                    return 'Volatility: ' + context.parsed.y.toFixed(1);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volatility Index',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: { weight: 'bold' }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error creating Volatility chart:', error);
+        }
+
+        // Add responsive behavior
+        function handleResize() {
+            Chart.helpers.each(Chart.instances, function(instance) {
+                instance.resize();
+            });
+        }
+
+        window.addEventListener('resize', handleResize);
+        
+        }
+    </script>
+</body>
+</html>
+        
