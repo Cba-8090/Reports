@@ -1220,6 +1220,117 @@ class MarketIntelligenceEngine:
             logger.error(f"Error extracting economic indicators data: {str(e)}")
             return self._get_fallback_economic_indicators_data()
 
+    def extract_hyg_credit_data(self, soup: BeautifulSoup) -> Dict:
+        """Extract HYG credit spread data dynamically from the HTML report"""
+        if not soup:
+            return self._get_fallback_hyg_data()
+
+        try:
+            data = {
+                "current_spread": 3.23,  # Will extract from HTML
+                "calculated_spread": 2.96,  # Will extract from HTML
+                "divergence_percentage": 0.0,  # Will calculate
+                "alert_level": "MODERATE WATCH",  # Will extract from HTML
+                "hy_yield": 7.33,  # Will extract from HTML
+                "treasury_10y": 4.37,  # Will extract from HTML
+                "data_quality_score": 80.6,  # Will extract from HTML
+                "status": "NORMAL"  # Will determine based on calculations
+            }
+
+            # Extract Current HYG Spread (3.23%)
+            summary_cards = soup.find_all('div', class_='summary-card')
+            for card in summary_cards:
+                h3 = card.find('h3')
+                if h3 and 'Current HYG Spread' in h3.get_text():
+                    value_div = card.find('div', class_='metric-value')
+                    if value_div:
+                        spread_text = value_div.get_text(strip=True)
+                        spread_val = self.extract_numeric_value(spread_text)
+                        if spread_val is not None:
+                            data["current_spread"] = spread_val
+                            break
+
+            # Extract Calculated Spread and other metrics from data table
+            data_table = soup.find('table', class_='data-table')
+            if data_table:
+                rows = data_table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all('td')
+                    if len(cells) >= 2:
+                        metric_name = cells[0].get_text(strip=True)
+                        current_value = cells[1].get_text(strip=True)
+
+                        if 'Calculated Spread' in metric_name:
+                            calc_spread = self.extract_numeric_value(current_value)
+                            if calc_spread is not None:
+                                data["calculated_spread"] = calc_spread
+                        elif 'HY Yield' in metric_name:
+                            hy_val = self.extract_numeric_value(current_value)
+                            if hy_val is not None:
+                                data["hy_yield"] = hy_val
+                        elif '10Y Treasury' in metric_name:
+                            treasury_val = self.extract_numeric_value(current_value)
+                            if treasury_val is not None:
+                                data["treasury_10y"] = treasury_val
+
+            # Extract Alert Level from badge
+            alert_badge = soup.find('div', class_='alert-badge')
+            if alert_badge:
+                alert_text = alert_badge.get_text(strip=True)
+                alert_clean = alert_text.replace('🟡', '').strip()
+                if alert_clean:
+                    data["alert_level"] = alert_clean
+
+            # Extract Data Quality Score
+            quality_cards = soup.find_all('div', class_='quality-card')
+            for card in quality_cards:
+                h4 = card.find('h4')
+                if h4 and 'Data Completeness' in h4.get_text():
+                    quality_value = card.find('div', class_='quality-value')
+                    if quality_value:
+                        quality_text = quality_value.get_text(strip=True)
+                        quality_score = self.extract_numeric_value(quality_text)
+                        if quality_score is not None:
+                            data["data_quality_score"] = quality_score
+                            break
+
+            # Calculate divergence percentage
+            if data["calculated_spread"] > 0:
+                divergence = ((data["current_spread"] - data["calculated_spread"]) / data["calculated_spread"]) * 100
+                data["divergence_percentage"] = abs(divergence)
+            else:
+                data["divergence_percentage"] = 0.0
+
+            # Determine status
+            if data["divergence_percentage"] > 15.0:
+                data["status"] = "CRITICAL"
+            elif data["divergence_percentage"] > 8.0 or data["alert_level"] == "MODERATE WATCH":
+                data["status"] = "WARNING"
+            else:
+                data["status"] = "NORMAL"
+
+            logger.info(
+                f"HYG Credit Data Extracted: Spread={data['current_spread']}%, Divergence={data['divergence_percentage']:.2f}%, Status={data['status']}")
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Error extracting HYG credit data: {str(e)}")
+            return self._get_fallback_hyg_data()
+
+    def _get_fallback_hyg_data(self) -> Dict:
+        """Fallback HYG credit data with realistic values"""
+        return {
+            "current_spread": 3.23,
+            "calculated_spread": 2.96,
+            "divergence_percentage": 9.12,  # (3.23-2.96)/2.96*100
+            "alert_level": "MODERATE WATCH",
+            "hy_yield": 7.33,
+            "treasury_10y": 4.37,
+            "data_quality_score": 80.6,
+            "status": "WARNING"
+        }
+
     # Fallback data methods
     def _get_fallback_trend_data(self) -> Dict:
         return {
@@ -1349,7 +1460,8 @@ class MarketIntelligenceEngine:
             "global_sentiment": self.extract_global_sentiment_data,
             "nifty_mrn": self.extract_nifty_mrn_data,
             "news_dashboard": self.extract_news_dashboard_data,
-            "economic_indicators": self.extract_economic_indicators_data  # Add economic indicators extraction
+            "economic_indicators": self.extract_economic_indicators_data ,
+            "hyg_credit": self.extract_hyg_credit_data   
         }
 
         for source_id, path_template in self.data_sources.items():
@@ -1441,9 +1553,18 @@ class MarketIntelligenceEngine:
         self.contradiction_frameworks["economic_assessment"].current_level = 75.0
         self.contradiction_frameworks["economic_assessment"].status = FrameworkStatus.CRITICAL
 
-        # Framework 3: Credit Data Integrity
-        self.contradiction_frameworks["credit_vs_fundamentals"].current_level = 126.0
-        self.contradiction_frameworks["credit_vs_fundamentals"].status = FrameworkStatus.CRITICAL
+       # Framework 3: Credit Data Integrity - NOW DYNAMIC
+        hyg_data = raw_data.get("hyg_credit", {})
+        credit_divergence = hyg_data.get("divergence_percentage", 9.12)
+
+        self.contradiction_frameworks["credit_vs_fundamentals"].current_level = credit_divergence
+        if credit_divergence > 25.0:
+            self.contradiction_frameworks["credit_vs_fundamentals"].status = FrameworkStatus.CRITICAL
+        elif credit_divergence > 8.0:
+            self.contradiction_frameworks["credit_vs_fundamentals"].status = FrameworkStatus.WARNING
+        else:
+            self.contradiction_frameworks["credit_vs_fundamentals"].status = FrameworkStatus.NORMAL
+
 
         # Framework 4: Risk vs Activity
         self.contradiction_frameworks["risk_vs_activity"].current_level = 100.0
@@ -1660,6 +1781,13 @@ class PublicationGenerator:
         # FIXED: Generate dynamic sector intelligence HTML
         dynamic_sector_cards = self.generate_dynamic_sector_html(sector_data)
 
+        hyg_data = raw_data.get("hyg_credit", {})
+        credit_spread = hyg_data.get("current_spread", 3.23)
+        credit_divergence = hyg_data.get("divergence_percentage", 9.12)
+        credit_status = hyg_data.get("status", "WARNING").lower()
+        credit_alert = hyg_data.get("alert_level", "MODERATE WATCH")
+
+
         html_content = f'''<!DOCTYPE html>
      <html lang="en">
      <head>
@@ -1828,8 +1956,9 @@ class PublicationGenerator:
 
                  <div class="hero-card">
                      <h3>💳 Credit Data Integrity</h3>
-                     <div class="hero-value critical">126%</div>
-                     <p>HYG Spread Divergence</p>
+                     
+                     <div class="hero-value {credit_status}">{credit_divergence:.1f}%</div>
+                    <p>Spread: {credit_spread}% | Alert: {credit_alert}</p>
                  </div>
 
                  <div class="hero-card">
@@ -2167,7 +2296,8 @@ class PublicationGenerator:
 
                 <div class="finding-card">
                     <h3>💳 Data Integrity Crisis</h3>
-                    <div class="metric-value critical">126%</div>
+                    
+                    <div class="metric-value critical">{raw_data.get('hyg_credit', {}).get('divergence_percentage', 9.12):.1f}%</div>
                     <p>HYG spread calculation divergence - infrastructure failure detected</p>
                 </div>
 
