@@ -1575,12 +1575,385 @@ class MarketIntelligenceEngine:
             logger.info(f"  - Contradiction Level: {data['risk_vs_activity_contradiction']:.1f}%")
             logger.info(f"  - Framework Status: {data['framework_status']}")
 
+            #== == == == == == == == == == == == == == == == == == == == ==
+            # ADD THIS NEW SECTION AT THE END:
+            # ==========================================
+
+            # NEW: Extract Framework 7 data from same source
+            us_backdrop_data = self.extract_us_economic_backdrop_data(soup)
+
+            # Merge Framework 7 data into the return dictionary
+            data.update({
+                "us_backdrop_data": us_backdrop_data,
+                "backdrop_contradiction": us_backdrop_data["backdrop_contradiction"],
+                "backdrop_status": us_backdrop_data["backdrop_status"],
+                "dynamic_implication": us_backdrop_data["dynamic_implication"],
+                "us_investment_opportunities": us_backdrop_data["investment_opportunities"]
+            })
+
+
             return data
 
         except Exception as e:
             logger.error(f"Error extracting global economic data: {str(e)}")
             logger.error(traceback.format_exc())
             return self._get_fallback_global_economic_data()
+
+    def extract_us_economic_backdrop_data(self, soup: BeautifulSoup) -> Dict:
+        """Extract US Economic Backdrop data dynamically for Framework 7"""
+        if not soup:
+            return self._get_fallback_us_economic_data()
+
+        try:
+            data = {
+                "us_indicators": [],  # US-specific indicators identified
+                "global_indicators": [],  # Non-US indicators for comparison
+                "treasury_yield_signals": [],  # Treasury/bond stress signals
+                "employment_signals": [],  # Employment deterioration signals
+                "inflation_signals": [],  # Inflation pressure signals
+                "fed_policy_signals": [],  # Fed policy uncertainty signals
+                "us_sentiment_score": 0.0,  # Aggregated US sentiment
+                "global_sentiment_score": 0.0,  # Non-US sentiment for comparison
+                "backdrop_contradiction": 0.0,  # Multi-factor contradiction level
+                "backdrop_status": "NORMAL",  # Dynamic status
+                "category_breakdown": {
+                    "treasury_stress": 0.0,
+                    "employment_deterioration": 0.0,
+                    "inflation_pressure": 0.0,
+                    "fed_policy_uncertainty": 0.0
+                },
+                "investment_opportunities": [],  # US-specific opportunities
+                "dynamic_implication": ""  # Real-time implication text
+            }
+
+            # ==========================================
+            # CLASSIFY US vs GLOBAL INDICATORS
+            # ==========================================
+
+            # Keywords to identify US-specific indicators
+            us_keywords = [
+                'treasury', 'fed', 'federal', 'jobless', 'unemployment', 'cpi', 'gdp',
+                'ism', 'pmi', 'yield', 'bond', 'dollar', 'dxy', 'inflation', 'pcr',
+                'fomc', 'interest rate', 'us', 'usa', 'america', 'nonfarm', 'payroll',
+                'consumer confidence', 'retail sales', 'housing', 'mortgage', 'claims'
+            ]
+
+            # Treasury-specific keywords
+            treasury_keywords = ['treasury', 'yield', 'bond', '10-year', '2-year', 'spread']
+
+            # Employment-specific keywords
+            employment_keywords = ['jobless', 'unemployment', 'claims', 'payroll', 'nonfarm']
+
+            # Inflation-specific keywords
+            inflation_keywords = ['cpi', 'inflation', 'pcr', 'consumer price']
+
+            # Fed policy keywords
+            fed_keywords = ['fed', 'federal', 'fomc', 'interest rate', 'monetary']
+
+            # Extract all indicators from the HTML
+            all_indicators = []
+
+            # Find all indicator tables
+            tables = soup.find_all('table')
+            for table in tables:
+                # Check if this is an indicators table
+                headers = table.find_all('th')
+                if len(headers) >= 3:
+                    header_text = ' '.join([th.get_text() for th in headers]).lower()
+                    if 'indicator' in header_text and ('value' in header_text or 'change' in header_text):
+
+                        rows = table.find_all('tr')[1:]  # Skip header
+                        for row in rows:
+                            cells = row.find_all('td')
+                            if len(cells) >= 3:
+                                indicator_name = cells[0].get_text(strip=True)
+                                value = self.extract_numeric_value(cells[1].get_text(strip=True))
+                                change = self.extract_percentage(cells[2].get_text(strip=True))
+
+                                # Determine trend from value and change
+                                trend = "Neutral"
+                                if change is not None:
+                                    if change > 2.0:
+                                        trend = "Rising"
+                                    elif change < -2.0:
+                                        trend = "Falling"
+
+                                indicator_data = {
+                                    'name': indicator_name,
+                                    'value': value,
+                                    'change': change,
+                                    'trend': trend,
+                                    'is_us': False,
+                                    'category': 'global'
+                                }
+
+                                # Classify as US indicator
+                                indicator_lower = indicator_name.lower()
+                                for keyword in us_keywords:
+                                    if keyword in indicator_lower:
+                                        indicator_data['is_us'] = True
+
+                                        # Classify into specific US categories
+                                        if any(kw in indicator_lower for kw in treasury_keywords):
+                                            indicator_data['category'] = 'treasury'
+                                        elif any(kw in indicator_lower for kw in employment_keywords):
+                                            indicator_data['category'] = 'employment'
+                                        elif any(kw in indicator_lower for kw in inflation_keywords):
+                                            indicator_data['category'] = 'inflation'
+                                        elif any(kw in indicator_lower for kw in fed_keywords):
+                                            indicator_data['category'] = 'fed_policy'
+                                        else:
+                                            indicator_data['category'] = 'us_general'
+                                        break
+
+                                all_indicators.append(indicator_data)
+
+            # ==========================================
+            # SEPARATE US AND GLOBAL INDICATORS
+            # ==========================================
+
+            for indicator in all_indicators:
+                if indicator['is_us']:
+                    data["us_indicators"].append(indicator)
+                else:
+                    data["global_indicators"].append(indicator)
+
+            # ==========================================
+            # ANALYZE CATEGORY-SPECIFIC SIGNALS
+            # ==========================================
+
+            # Treasury Stress Signals
+            treasury_stress_score = 0.0
+            for indicator in data["us_indicators"]:
+                if indicator['category'] == 'treasury':
+                    # High treasury yields = stress
+                    if indicator['value'] and indicator['value'] > 4.0:  # 10Y > 4%
+                        stress_level = min((indicator['value'] - 4.0) * 20, 100)  # Scale 4-9% to 0-100%
+                        treasury_stress_score += stress_level
+                        data["treasury_yield_signals"].append({
+                            'indicator': indicator['name'],
+                            'value': indicator['value'],
+                            'stress_level': stress_level,
+                            'signal': f"High yield stress: {indicator['value']:.2f}%"
+                        })
+
+                    # Rising yields = increasing stress
+                    if indicator['change'] and indicator['change'] > 3.0:
+                        change_stress = min(indicator['change'] * 5, 50)  # Cap at 50%
+                        treasury_stress_score += change_stress
+                        data["treasury_yield_signals"].append({
+                            'indicator': indicator['name'],
+                            'change': indicator['change'],
+                            'stress_level': change_stress,
+                            'signal': f"Rising yield pressure: +{indicator['change']:.1f}%"
+                        })
+
+            data["category_breakdown"]["treasury_stress"] = min(treasury_stress_score, 100)
+
+            # Employment Deterioration Signals
+            employment_deterioration = 0.0
+            for indicator in data["us_indicators"]:
+                if indicator['category'] == 'employment':
+                    # Rising unemployment/claims = deterioration
+                    if indicator['change'] and indicator['change'] > 2.0:
+                        deterioration_level = min(indicator['change'] * 8, 80)  # Scale to max 80%
+                        employment_deterioration += deterioration_level
+                        data["employment_signals"].append({
+                            'indicator': indicator['name'],
+                            'change': indicator['change'],
+                            'deterioration_level': deterioration_level,
+                            'signal': f"Employment weakness: +{indicator['change']:.1f}%"
+                        })
+
+                    # High absolute unemployment levels
+                    if 'unemployment' in indicator['name'].lower() and indicator['value'] and indicator['value'] > 4.5:
+                        level_stress = (indicator['value'] - 4.5) * 15  # Above 4.5% unemployment
+                        employment_deterioration += level_stress
+                        data["employment_signals"].append({
+                            'indicator': indicator['name'],
+                            'value': indicator['value'],
+                            'deterioration_level': level_stress,
+                            'signal': f"High unemployment: {indicator['value']:.1f}%"
+                        })
+
+            data["category_breakdown"]["employment_deterioration"] = min(employment_deterioration, 100)
+
+            # Inflation Pressure Signals
+            inflation_pressure = 0.0
+            for indicator in data["us_indicators"]:
+                if indicator['category'] == 'inflation':
+                    # High inflation levels
+                    if indicator['value'] and indicator['value'] > 3.0:  # Above 3% CPI
+                        pressure_level = min((indicator['value'] - 3.0) * 12, 60)  # Scale 3-8% to 0-60%
+                        inflation_pressure += pressure_level
+                        data["inflation_signals"].append({
+                            'indicator': indicator['name'],
+                            'value': indicator['value'],
+                            'pressure_level': pressure_level,
+                            'signal': f"High inflation: {indicator['value']:.1f}%"
+                        })
+
+                    # Rising inflation trends
+                    if indicator['change'] and indicator['change'] > 1.5:
+                        trend_pressure = min(indicator['change'] * 10, 40)  # Cap at 40%
+                        inflation_pressure += trend_pressure
+                        data["inflation_signals"].append({
+                            'indicator': indicator['name'],
+                            'change': indicator['change'],
+                            'pressure_level': trend_pressure,
+                            'signal': f"Rising inflation trend: +{indicator['change']:.1f}%"
+                        })
+
+            data["category_breakdown"]["inflation_pressure"] = min(inflation_pressure, 100)
+
+            # Fed Policy Uncertainty
+            fed_uncertainty = 0.0
+            for indicator in data["us_indicators"]:
+                if indicator['category'] == 'fed_policy':
+                    # Volatile interest rate signals
+                    if indicator['change'] and abs(indicator['change']) > 2.0:
+                        uncertainty_level = min(abs(indicator['change']) * 6, 50)
+                        fed_uncertainty += uncertainty_level
+                        data["fed_policy_signals"].append({
+                            'indicator': indicator['name'],
+                            'change': indicator['change'],
+                            'uncertainty_level': uncertainty_level,
+                            'signal': f"Fed policy volatility: {indicator['change']:+.1f}%"
+                        })
+
+            data["category_breakdown"]["fed_policy_uncertainty"] = min(fed_uncertainty, 100)
+
+            # ==========================================
+            # CALCULATE US vs GLOBAL SENTIMENT
+            # ==========================================
+
+            # Calculate US sentiment from US indicators
+            us_positive = sum(1 for ind in data["us_indicators"] if ind['change'] and ind['change'] > 1.0)
+            us_negative = sum(1 for ind in data["us_indicators"] if ind['change'] and ind['change'] < -1.0)
+            us_total = len(data["us_indicators"])
+
+            if us_total > 0:
+                data["us_sentiment_score"] = ((us_positive - us_negative) / us_total) * 100
+
+            # Calculate Global sentiment from non-US indicators
+            global_positive = sum(1 for ind in data["global_indicators"] if ind['change'] and ind['change'] > 1.0)
+            global_negative = sum(1 for ind in data["global_indicators"] if ind['change'] and ind['change'] < -1.0)
+            global_total = len(data["global_indicators"])
+
+            if global_total > 0:
+                data["global_sentiment_score"] = ((global_positive - global_negative) / global_total) * 100
+
+            # ==========================================
+            # CALCULATE MULTI-FACTOR CONTRADICTION
+            # ==========================================
+
+            # Factor 1: US vs Global Divergence (Weight: 50%)
+            us_global_divergence = abs(data["us_sentiment_score"] - data["global_sentiment_score"])
+            if data["global_sentiment_score"] != 0:
+                us_global_divergence = (us_global_divergence / abs(data["global_sentiment_score"])) * 100
+            us_global_weighted = min(us_global_divergence * 0.5, 50.0)
+
+            # Factor 2: Treasury Stress (Weight: 40%)
+            treasury_weighted = (data["category_breakdown"]["treasury_stress"] / 100) * 40.0
+
+            # Factor 3: Employment Deterioration (Weight: 30%)
+            employment_weighted = (data["category_breakdown"]["employment_deterioration"] / 100) * 30.0
+
+            # Factor 4: Fed Policy Uncertainty (Weight: 25%)
+            fed_weighted = (data["category_breakdown"]["fed_policy_uncertainty"] / 100) * 25.0
+
+            # Factor 5: Inflation Pressure (Weight: 20%)
+            inflation_weighted = (data["category_breakdown"]["inflation_pressure"] / 100) * 20.0
+
+            # Calculate final contradiction level
+            data[
+                "backdrop_contradiction"] = us_global_weighted + treasury_weighted + employment_weighted + fed_weighted + inflation_weighted
+
+            # ==========================================
+            # DETERMINE DYNAMIC STATUS
+            # ==========================================
+
+            if data["backdrop_contradiction"] > 30.0:
+                data["backdrop_status"] = "CRITICAL"
+            elif data["backdrop_contradiction"] > 15.0:
+                data["backdrop_status"] = "WARNING"
+            else:
+                data["backdrop_status"] = "NORMAL"
+
+            # ==========================================
+            # GENERATE DYNAMIC IMPLICATION
+            # ==========================================
+
+            signal_count = len(data["treasury_yield_signals"]) + len(data["employment_signals"]) + len(
+                data["inflation_signals"]) + len(data["fed_policy_signals"])
+
+            if data["backdrop_status"] == "CRITICAL":
+                data[
+                    "dynamic_implication"] = f"Critical US economic divergence: {len(data['us_indicators'])} US indicators vs global, {len(data['treasury_yield_signals'])} treasury stress signals, {len(data['employment_signals'])} employment warnings"
+            elif data["backdrop_status"] == "WARNING":
+                data[
+                    "dynamic_implication"] = f"US economic stress detected: {signal_count} total signals across treasury, employment, and Fed policy"
+            else:
+                data[
+                    "dynamic_implication"] = f"US economic conditions stable: {len(data['us_indicators'])} indicators monitored, minimal divergence from global trends"
+
+            # ==========================================
+            # GENERATE INVESTMENT OPPORTUNITIES
+            # ==========================================
+
+            if data["backdrop_status"] == "CRITICAL":
+                # US Economic Divergence Trade
+                if us_global_divergence > 20:
+                    data["investment_opportunities"].append({
+                        "type": "US Economic Divergence Trade",
+                        "strategy": "US sector rotation based on treasury/employment signals",
+                        "magnitude": us_global_divergence,
+                        "timeline": "2-6 weeks",
+                        "confidence": "High"
+                    })
+
+                # Treasury Stress Play
+                if data["category_breakdown"]["treasury_stress"] > 50:
+                    data["investment_opportunities"].append({
+                        "type": "Treasury Stress Arbitrage",
+                        "strategy": "Short duration, long credit quality spread",
+                        "magnitude": data["category_breakdown"]["treasury_stress"],
+                        "timeline": "1-8 weeks",
+                        "confidence": "Very High"
+                    })
+
+            elif data["backdrop_status"] == "WARNING":
+                # Defensive positioning
+                data["investment_opportunities"].append({
+                    "type": "US Economic Defense",
+                    "strategy": "Rotate to defensive sectors, reduce duration risk",
+                    "magnitude": data["backdrop_contradiction"],
+                    "timeline": "4-12 weeks",
+                    "confidence": "Medium"
+                })
+
+            # ==========================================
+            # LOGGING
+            # ==========================================
+
+            logger.info(f"US Economic Backdrop Framework Data:")
+            logger.info(f"  - US Indicators: {len(data['us_indicators'])}")
+            logger.info(f"  - Global Indicators: {len(data['global_indicators'])}")
+            logger.info(f"  - US Sentiment: {data['us_sentiment_score']:.1f}")
+            logger.info(f"  - Global Sentiment: {data['global_sentiment_score']:.1f}")
+            logger.info(f"  - Treasury Stress: {data['category_breakdown']['treasury_stress']:.1f}%")
+            logger.info(f"  - Employment Signals: {len(data['employment_signals'])}")
+            logger.info(f"  - Backdrop Contradiction: {data['backdrop_contradiction']:.1f}%")
+            logger.info(f"  - Dynamic Status: {data['backdrop_status']}")
+
+            return data
+
+        except Exception as e:
+            logger.error(f"Error extracting US economic backdrop data: {str(e)}")
+            logger.error(traceback.format_exc())
+            return self._get_fallback_us_economic_data()
+
+
 
     def _get_fallback_global_economic_data(self) -> Dict:
         """Fallback global economic data for Framework 4"""
@@ -1704,6 +2077,55 @@ class MarketIntelligenceEngine:
         except Exception as e:
             logger.error(f"Error extracting HYG credit data: {str(e)}")
             return self._get_fallback_hyg_data()
+
+    def _get_fallback_us_economic_data(self) -> Dict:
+        """Fallback US economic backdrop data for Framework 7"""
+        return {
+            "us_indicators": [
+                {"name": "Treasury Yields (10-Year)", "value": 4.46, "change": 1.13, "category": "treasury"},
+                {"name": "Initial Jobless Claims", "value": 240000.0, "change": 5.73, "category": "employment"},
+                {"name": "Treasury Yields (2-Year)", "value": 3.94, "change": 1.29, "category": "treasury"},
+                {"name": "US CPI", "value": 3.2, "change": 0.8, "category": "inflation"}
+            ],
+            "global_indicators": [
+                {"name": "Global PMI", "value": 52.1, "change": -0.3, "category": "global"},
+                {"name": "Euro Area CPI", "value": 2.1, "change": -0.2, "category": "global"}
+            ],
+            "treasury_yield_signals": [
+                {"indicator": "10-Year Treasury", "value": 4.46, "stress_level": 9.2,
+                 "signal": "High yield stress: 4.46%"},
+                {"indicator": "2-Year Treasury", "change": 1.29, "stress_level": 6.45,
+                 "signal": "Rising yield pressure: +1.3%"}
+            ],
+            "employment_signals": [
+                {"indicator": "Jobless Claims", "change": 5.73, "deterioration_level": 45.8,
+                 "signal": "Employment weakness: +5.7%"}
+            ],
+            "inflation_signals": [
+                {"indicator": "CPI", "value": 3.2, "pressure_level": 2.4, "signal": "Moderate inflation: 3.2%"}
+            ],
+            "fed_policy_signals": [],
+            "us_sentiment_score": -25.0,  # Bearish US conditions
+            "global_sentiment_score": 5.0,  # Neutral global conditions
+            "backdrop_contradiction": 45.2,  # High divergence
+            "backdrop_status": "CRITICAL",
+            "category_breakdown": {
+                "treasury_stress": 15.65,  # From yield stress signals
+                "employment_deterioration": 45.8,  # From jobless claims
+                "inflation_pressure": 2.4,  # From CPI
+                "fed_policy_uncertainty": 0.0  # No signals in fallback
+            },
+            "investment_opportunities": [
+                {
+                    "type": "US Economic Divergence Trade",
+                    "strategy": "US sector rotation based on treasury/employment signals",
+                    "magnitude": 30.0,
+                    "timeline": "2-6 weeks",
+                    "confidence": "High"
+                }
+            ],
+            "dynamic_implication": "Critical US economic divergence: 4 US indicators vs global, 2 treasury stress signals, 1 employment warnings"
+        }
 
     def _get_fallback_hyg_data(self) -> Dict:
         """Fallback HYG credit data with realistic values"""
@@ -2001,8 +2423,24 @@ class MarketIntelligenceEngine:
         )
 
         # Framework 7: US Economic Backdrop
-        self.contradiction_frameworks["us_economic_backdrop"].current_level = 50.0
-        self.contradiction_frameworks["us_economic_backdrop"].status = FrameworkStatus.WARNING
+        us_economic_data = raw_data.get("global_economic", {})  # Reuse same data source as Framework 4
+        backdrop_contradiction = us_economic_data.get("backdrop_contradiction", 45.2)
+        backdrop_status = us_economic_data.get("backdrop_status", "CRITICAL")
+
+        self.contradiction_frameworks["us_economic_backdrop"].current_level = backdrop_contradiction
+        if backdrop_contradiction > 30.0:
+            self.contradiction_frameworks["us_economic_backdrop"].status = FrameworkStatus.CRITICAL
+        elif backdrop_contradiction > 15.0:
+            self.contradiction_frameworks["us_economic_backdrop"].status = FrameworkStatus.WARNING
+        else:
+            self.contradiction_frameworks["us_economic_backdrop"].status = FrameworkStatus.NORMAL
+
+
+        self.contradiction_frameworks["us_economic_backdrop"].implication = us_economic_data.get(
+            "dynamic_implication",
+            "US economic indicators showing mixed signals"
+        )
+
 
         # Calculate master divergence index
         total_score = 0
