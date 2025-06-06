@@ -1,0 +1,1848 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Market Dashboard - Progressive Analysis</title>
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            <style>
+                :root {
+                    --primary-color: #2C3E50;
+                    --secondary-color: #3498DB;
+                    --accent-color: #F39C12;
+                    --success-color: #1E8449;
+                    --warning-color: #F7DC6F;
+                    --danger-color: #C0392B;
+                    --neutral-color: #ECF0F1;
+                    --bullish-color: #1E8449;
+                    --bearish-color: #C0392B;
+                    --neutral-bgcolor: #f9f9f9;
+                }
+
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                    font-family: Arial, sans-serif;
+                }
+
+                body {
+                    background-color: var(--neutral-bgcolor);
+                    color: #333;
+                    line-height: 1.6;
+                }
+
+                .container {
+                    max-width: 1400px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+
+                .header {
+                    background-color: var(--primary-color);
+                    color: white;
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    border-radius: 5px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+
+                .header h1 {
+                    margin: 0;
+                    font-size: 24px;
+                }
+
+                .header p {
+                    margin: 5px 0 0;
+                    font-size: 14px;
+                    opacity: 0.8;
+                }
+
+                .dashboard-summary {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .summary-card {
+                    background: white;
+                    border-radius: 5px;
+                    padding: 20px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                    text-align: center;
+                }
+
+                .summary-card.bullish {
+                    border-top: 4px solid var(--bullish-color);
+                }
+
+                .summary-card.bearish {
+                    border-top: 4px solid var(--bearish-color);
+                }
+
+                .summary-card.neutral {
+                    border-top: 4px solid var(--accent-color);
+                }
+
+                .summary-card h2 {
+                    font-size: 16px;
+                    margin-bottom: 10px;
+                    color: #666;
+                }
+
+                .summary-card .value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+
+                .summary-card .value.bullish {
+                    color: var(--bullish-color);
+                }
+
+                .summary-card .value.bearish {
+                    color: var(--bearish-color);
+                }
+
+                .summary-card .description {
+                    font-size: 14px;
+                    color: #666;
+                }
+
+                .tabs {
+                    display: flex;
+                    border-bottom: 1px solid #ddd;
+                    margin-bottom: 20px;
+                }
+
+                .tab-button {
+                    padding: 10px 20px;
+                    border: none;
+                    background: none;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 500;
+                    color: #666;
+                    border-bottom: 3px solid transparent;
+                }
+
+                .tab-button:hover {
+                    background-color: #f5f5f5;
+                }
+
+                .tab-button.active {
+                    color: var(--primary-color);
+                    border-bottom-color: var(--primary-color);
+                }
+
+                .tab-content {
+                    display: none;
+                }
+
+                .tab-content.active {
+                    display: block;
+                }
+
+                .chart-row {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+                    gap: 20px;
+                    margin-bottom: 20px;
+                }
+
+                .chart-container {
+                    background: white;
+                    border-radius: 5px;
+                    padding: 20px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+
+                .chart-title {
+                    font-size: 18px;
+                    margin-bottom: 15px;
+                    color: var(--primary-color);
+                }
+
+                .plot-container {
+                    height: 400px;
+                }
+
+                .stock-list {
+                    margin-top: 20px;
+                }
+
+                .stock-list h3 {
+                    font-size: 18px;
+                    margin-bottom: 10px;
+                    color: var(--primary-color);
+                }
+
+                .stock-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+
+                .stock-table th, .stock-table td {
+                    padding: 10px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                }
+
+                .stock-table th {
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                }
+
+                .stock-table tr:hover {
+                    background-color: #f5f5f5;
+                }
+
+                .bullish {
+                    color: var(--bullish-color);
+                }
+
+                .bearish {
+                    color: var(--bearish-color);
+                }
+
+                .footer {
+                    text-align: center;
+                    margin-top: 50px;
+                    padding: 20px;
+                    color: #666;
+                    font-size: 14px;
+                }
+
+                /* Responsive adjustments */
+                @media (max-width: 768px) {
+                    .chart-row {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .tab-button {
+                        padding: 10px;
+                        font-size: 14px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Market Dashboard - Progressive Analysis</h1>
+                    <p>Analysis Date: 2025-06-05 | Total Stocks Analyzed: 178</p>
+                </div>
+
+                <div class="dashboard-summary">
+                    <div class="summary-card neutral">
+                        <h2>Overall Market Sentiment</h2>
+                        <div class="value neutral">0.17</div>
+                        <div class="description">
+                            36.0% Bullish | 27.5% Bearish
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h2>Alert Distribution</h2>
+                        <div class="value">37</div>
+                        <div class="description">
+                            Stocks with RED alerts
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h2>Institutional Flow</h2>
+                        <div class="value bearish">
+                            32.6%
+                        </div>
+                        <div class="description">
+                            FII Positive Flow
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h2>Price-Sentiment Alignment</h2>
+                        <div class="value">
+                            71.3%
+                        </div>
+                        <div class="description">
+                            Stocks with aligned price & sentiment
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="openTab(event, 'sentiment-tab')">Sentiment Analysis</button>
+                    <button class="tab-button" onclick="openTab(event, 'patterns-tab')">Pattern Analysis</button>
+                    <button class="tab-button" onclick="openTab(event, 'institutional-tab')">Institutional Flow</button>
+                    <button class="tab-button" onclick="openTab(event, 'stock-lists-tab')">Stock Lists</button>
+                </div>
+
+                <div id="sentiment-tab" class="tab-content active">
+                    <div class="chart-row">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Market Sentiment Distribution</h3>
+                            <div id="sentiment-chart" class="plot-container"></div>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Sector Sentiment Heatmap</h3>
+                            <div id="sector-chart" class="plot-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="chart-row">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Alert Distribution</h3>
+                            <div id="alert-chart" class="plot-container"></div>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Price-Sentiment Correlation</h3>
+                            <div id="correlation-chart" class="plot-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="patterns-tab" class="tab-content">
+                    <div class="chart-row">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Pattern Distribution</h3>
+                            <div id="pattern-chart" class="plot-container"></div>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Pattern Descriptions</h3>
+                            <div style="height: 400px; overflow-y: auto;">
+                                <table class="stock-table">
+                                    <tr>
+                                        <th>Pattern</th>
+                                        <th>Description</th>
+                                        <th>Count</th>
+                                    </tr>
+                                    
+            <tr>
+                <td>PATTERN 0</td>
+                <td>No clear pattern identified</td>
+                <td>90</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 6</td>
+                <td>Early Distribution - Only FII turned negative, others still positive</td>
+                <td>23</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 5</td>
+                <td>Smart Money Distribution - FII selling while retail also turns negative</td>
+                <td>16</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 9</td>
+                <td>Smart Money Leading - FII buying, retail selling, price rising</td>
+                <td>14</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 11</td>
+                <td>Full Consensus Bullish - All participants buying</td>
+                <td>8</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 8</td>
+                <td>FII-DII Bearish Divergence - FII selling while DII buying</td>
+                <td>6</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 12</td>
+                <td>Full Consensus Bearish - All participants selling</td>
+                <td>4</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 15</td>
+                <td>FII-Price Divergence Bullish - FII buying despite price falling</td>
+                <td>3</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 16</td>
+                <td>FII-Price Divergence Bearish - FII selling despite price rising</td>
+                <td>3</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 4</td>
+                <td>FII-DII Distribution Phase - FII reversal from buying to selling with DII confirmation</td>
+                <td>3</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 10</td>
+                <td>Retail Trap - FII selling, retail buying, price falling</td>
+                <td>3</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 13</td>
+                <td>Sustained FII Buying - Continuous FII support with positive price action</td>
+                <td>2</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 14</td>
+                <td>Sustained FII Selling - Continuous FII pressure with negative price action</td>
+                <td>2</td>
+            </tr>
+            
+            <tr>
+                <td>PATTERN 1</td>
+                <td>FII-DII Accumulation Phase - FII reversal from selling to buying with DII support</td>
+                <td>1</td>
+            </tr>
+            
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="institutional-tab" class="tab-content">
+                    <div class="chart-row">
+                        <div class="chart-container">
+                            <h3 class="chart-title">Institutional Flow</h3>
+                            <div id="flow-chart" class="plot-container"></div>
+                        </div>
+
+                        <div class="chart-container">
+                            <h3 class="chart-title">Institutional Divergence</h3>
+                            <div style="height: 400px; overflow-y: auto;">
+                                <h4 style="margin: 10px 0;">FII-DII Divergent Stocks (79)</h4>
+                                <table class="stock-table">
+                                    <tr>
+                                        <th>Stock</th>
+                                        <th>Current Sentiment</th>
+                                        <th>Pattern</th>
+                                    </tr>
+                                    
+            <tr>
+                <td>ALKEM</td>
+                <td class="bearish">SHORT</td>
+                <td>PATTERN 12: Full Consensus Bearish - All participants selling</td>
+            </tr>
+            
+            <tr>
+                <td>APOLLOHOSP</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 15: FII-Price Divergence Bullish - FII buying despite price falling</td>
+            </tr>
+            
+            <tr>
+                <td>ASHOKLEY</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 5: Smart Money Distribution - FII selling while retail also turns negative</td>
+            </tr>
+            
+            <tr>
+                <td>BAJAJ-AUTO</td>
+                <td class="bearish">SHORT</td>
+                <td>PATTERN 8: FII-DII Bearish Divergence - FII selling while DII buying</td>
+            </tr>
+            
+            <tr>
+                <td>BHARATFORG</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 8: FII-DII Bearish Divergence - FII selling while DII buying</td>
+            </tr>
+            
+            <tr>
+                <td>BHARTIARTL</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>BSOFT</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+            </tr>
+            
+            <tr>
+                <td>CHOLAFIN</td>
+                <td class="bearish">SHORT</td>
+                <td>PATTERN 4: FII-DII Distribution Phase - FII reversal from buying to selling with DII confirmation</td>
+            </tr>
+            
+            <tr>
+                <td>COALINDIA</td>
+                <td class="bearish">SHORT</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>COFORGE</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>DALBHARAT</td>
+                <td class="bearish">SHORT</td>
+                <td>PATTERN 6: Early Distribution - Only FII turned negative, others still positive</td>
+            </tr>
+            
+            <tr>
+                <td>DRREDDY</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+            </tr>
+            
+            <tr>
+                <td>EICHERMOT</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>ESCORTS</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>GODREJCP</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 5: Smart Money Distribution - FII selling while retail also turns negative</td>
+            </tr>
+            
+            <tr>
+                <td>GRASIM</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 5: Smart Money Distribution - FII selling while retail also turns negative</td>
+            </tr>
+            
+            <tr>
+                <td>GSPL</td>
+                <td class="">NEUTRAL</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>HAL</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 0: No clear pattern identified</td>
+            </tr>
+            
+            <tr>
+                <td>HINDALCO</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 16: FII-Price Divergence Bearish - FII selling despite price rising</td>
+            </tr>
+            
+            <tr>
+                <td>HINDUNILVR</td>
+                <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+            </tr>
+            
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="stock-lists-tab" class="tab-content">
+                    
+        <div class="chart-row">
+            <div class="chart-container">
+                <h3 class="chart-title">Bullish Stocks</h3>
+                <div style="height: 400px; overflow-y: auto;">
+        
+                    <table class="stock-table">
+                        <tr>
+                            <th>Stock</th>
+                            <th>Sentiment</th>
+                            <th>Sector</th>
+                            <th>Latest Price</th>
+                        </tr>
+            
+                <tr>
+                    <td>APOLLOHOSP</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>6893.0</td>
+                </tr>
+                
+                <tr>
+                    <td>AUROPHARMA</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>1161.5</td>
+                </tr>
+                
+                <tr>
+                    <td>BAJAJFINSV</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>1944.9</td>
+                </tr>
+                
+                <tr>
+                    <td>BAJFINANCE</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>8925.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BANDHANBNK</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>167.19</td>
+                </tr>
+                
+                <tr>
+                    <td>BEL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Capital Goods</td>
+                    <td>394.1</td>
+                </tr>
+                
+                <tr>
+                    <td>BERGEPAINT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Consumer Durables</td>
+                    <td>577.45</td>
+                </tr>
+                
+                <tr>
+                    <td>BHARTIARTL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Telecommunication</td>
+                    <td>1878.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BOSCHLTD</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>31400.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BSOFT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Information Technology</td>
+                    <td>411.2</td>
+                </tr>
+                
+                <tr>
+                    <td>DIVISLAB</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>6610.5</td>
+                </tr>
+                
+                <tr>
+                    <td>DRREDDY</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>1290.1</td>
+                </tr>
+                
+                <tr>
+                    <td>GAIL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>190.72</td>
+                </tr>
+                
+                <tr>
+                    <td>GNFC</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Chemicals</td>
+                    <td>545.45</td>
+                </tr>
+                
+                <tr>
+                    <td>GODREJCP</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>1213.0</td>
+                </tr>
+                
+                <tr>
+                    <td>GRASIM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Construction Materials</td>
+                    <td>2556.0</td>
+                </tr>
+                
+                <tr>
+                    <td>GUJGASLTD</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>475.25</td>
+                </tr>
+                
+                <tr>
+                    <td>HAL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Capital Goods</td>
+                    <td>5074.0</td>
+                </tr>
+                
+                <tr>
+                    <td>HDFCBANK</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>1952.0</td>
+                </tr>
+                
+                <tr>
+                    <td>HINDALCO</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Metals _ Mining</td>
+                    <td>638.0</td>
+                </tr>
+                
+                <tr>
+                    <td>HINDUNILVR</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>2376.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ICICIPRULI</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>638.15</td>
+                </tr>
+                
+                <tr>
+                    <td>IDFCFIRSTB</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>66.81</td>
+                </tr>
+                
+                <tr>
+                    <td>INDUSINDBK</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>803.05</td>
+                </tr>
+                
+                <tr>
+                    <td>LALPATHLAB</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>2855.0</td>
+                </tr>
+                
+                <tr>
+                    <td>LAURUSLABS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>640.05</td>
+                </tr>
+                
+                <tr>
+                    <td>MANAPPURAM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>234.35</td>
+                </tr>
+                
+                <tr>
+                    <td>MARUTI</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>12132.0</td>
+                </tr>
+                
+                <tr>
+                    <td>MCX</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>7121.0</td>
+                </tr>
+                
+                <tr>
+                    <td>METROPOLIS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>1679.5</td>
+                </tr>
+                
+                <tr>
+                    <td>NAM-INDIA</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>750.0</td>
+                </tr>
+                
+                <tr>
+                    <td>NTPC</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Power</td>
+                    <td>328.6</td>
+                </tr>
+                
+                <tr>
+                    <td>PEL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>1129.8</td>
+                </tr>
+                
+                <tr>
+                    <td>PIDILITIND</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Chemicals</td>
+                    <td>3058.0</td>
+                </tr>
+                
+                <tr>
+                    <td>SBIN</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>806.8</td>
+                </tr>
+                
+                <tr>
+                    <td>SRF</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Chemicals</td>
+                    <td>3102.0</td>
+                </tr>
+                
+                <tr>
+                    <td>TATACOMM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Telecommunication</td>
+                    <td>1714.7</td>
+                </tr>
+                
+                <tr>
+                    <td>TATACONSUM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>1112.4</td>
+                </tr>
+                
+                <tr>
+                    <td>TATASTEEL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Metals _ Mining</td>
+                    <td>158.05</td>
+                </tr>
+                
+                <tr>
+                    <td>TITAN</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Consumer Durables</td>
+                    <td>3502.4</td>
+                </tr>
+                
+                <tr>
+                    <td>UBL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>2025.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ULTRACEMCO</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Construction Materials</td>
+                    <td>11180.0</td>
+                </tr>
+                
+                <tr>
+                    <td>AARTIIND</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Unknown</td>
+                    <td>480.75</td>
+                </tr>
+                
+                <tr>
+                    <td>ABBOTINDIA</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>31650.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ADANIENT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Metals _ Mining</td>
+                    <td>2510.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ASIANPAINT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Consumer Durables</td>
+                    <td>2242.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BALKRISIND</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>2460.2</td>
+                </tr>
+                
+                <tr>
+                    <td>BIOCON</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Healthcare</td>
+                    <td>330.6</td>
+                </tr>
+                
+                <tr>
+                    <td>CONCOR</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Services</td>
+                    <td>803.6</td>
+                </tr>
+                
+                <tr>
+                    <td>CUMMINSIND</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Capital Goods</td>
+                    <td>3350.0</td>
+                </tr>
+                
+                <tr>
+                    <td>EXIDEIND</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>390.5</td>
+                </tr>
+                
+                <tr>
+                    <td>GODREJPROP</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Realty</td>
+                    <td>2312.4</td>
+                </tr>
+                
+                <tr>
+                    <td>HEROMOTOCO</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>4177.0</td>
+                </tr>
+                
+                <tr>
+                    <td>IEX</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>199.44</td>
+                </tr>
+                
+                <tr>
+                    <td>IGL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>208.1</td>
+                </tr>
+                
+                <tr>
+                    <td>INDIAMART</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Consumer Services</td>
+                    <td>2437.9</td>
+                </tr>
+                
+                <tr>
+                    <td>INFY</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Information Technology</td>
+                    <td>1554.5</td>
+                </tr>
+                
+                <tr>
+                    <td>IOC</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>139.4</td>
+                </tr>
+                
+                <tr>
+                    <td>OFSS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Information Technology</td>
+                    <td>8735.0</td>
+                </tr>
+                
+                <tr>
+                    <td>PFC</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>408.0</td>
+                </tr>
+                
+                <tr>
+                    <td>PNB</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Financial Services</td>
+                    <td>109.15</td>
+                </tr>
+                
+                <tr>
+                    <td>TATACHEM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Chemicals</td>
+                    <td>932.0</td>
+                </tr>
+                
+                <tr>
+                    <td>TATAMOTORS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>710.1</td>
+                </tr>
+                
+                <tr>
+                    <td>VEDL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>Metals _ Mining</td>
+                    <td>440.1</td>
+                </tr>
+                
+                    </table>
+            
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="chart-title">Bearish Stocks</h3>
+                <div style="height: 400px; overflow-y: auto;">
+        
+                    <table class="stock-table">
+                        <tr>
+                            <th>Stock</th>
+                            <th>Sentiment</th>
+                            <th>Sector</th>
+                            <th>Latest Price</th>
+                        </tr>
+            
+                <tr>
+                    <td>ABFRL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Services</td>
+                    <td>77.1</td>
+                </tr>
+                
+                <tr>
+                    <td>ALKEM</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Healthcare</td>
+                    <td>4843.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ATUL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Chemicals</td>
+                    <td>7242.0</td>
+                </tr>
+                
+                <tr>
+                    <td>AXISBANK</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>1160.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BAJAJ-AUTO</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>8563.5</td>
+                </tr>
+                
+                <tr>
+                    <td>BALRAMCHIN</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>607.0</td>
+                </tr>
+                
+                <tr>
+                    <td>CHOLAFIN</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>1514.7</td>
+                </tr>
+                
+                <tr>
+                    <td>COALINDIA</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>395.1</td>
+                </tr>
+                
+                <tr>
+                    <td>COROMANDEL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Chemicals</td>
+                    <td>2309.9</td>
+                </tr>
+                
+                <tr>
+                    <td>CROMPTON</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Durables</td>
+                    <td>350.8</td>
+                </tr>
+                
+                <tr>
+                    <td>DALBHARAT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Construction Materials</td>
+                    <td>2093.9</td>
+                </tr>
+                
+                <tr>
+                    <td>DIXON</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Durables</td>
+                    <td>14700.0</td>
+                </tr>
+                
+                <tr>
+                    <td>GRANULES</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Healthcare</td>
+                    <td>532.6</td>
+                </tr>
+                
+                <tr>
+                    <td>HAVELLS</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Durables</td>
+                    <td>1489.9</td>
+                </tr>
+                
+                <tr>
+                    <td>HDFCAMC</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>4904.0</td>
+                </tr>
+                
+                <tr>
+                    <td>INDIACEM</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Construction Materials</td>
+                    <td>335.85</td>
+                </tr>
+                
+                <tr>
+                    <td>INTELLECT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Information Technology</td>
+                    <td>1181.9</td>
+                </tr>
+                
+                <tr>
+                    <td>IPCALAB</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Healthcare</td>
+                    <td>1380.5</td>
+                </tr>
+                
+                <tr>
+                    <td>JSWSTEEL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Metals _ Mining</td>
+                    <td>970.6</td>
+                </tr>
+                
+                <tr>
+                    <td>LICHSGFIN</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>599.55</td>
+                </tr>
+                
+                <tr>
+                    <td>MGL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>1311.0</td>
+                </tr>
+                
+                <tr>
+                    <td>MPHASIS</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Information Technology</td>
+                    <td>2525.0</td>
+                </tr>
+                
+                <tr>
+                    <td>MRF</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>139915.0</td>
+                </tr>
+                
+                <tr>
+                    <td>NAVINFLUOR</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Chemicals</td>
+                    <td>4474.0</td>
+                </tr>
+                
+                <tr>
+                    <td>PERSISTENT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Information Technology</td>
+                    <td>5628.0</td>
+                </tr>
+                
+                <tr>
+                    <td>RECLTD</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>403.25</td>
+                </tr>
+                
+                <tr>
+                    <td>SBICARD</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>943.0</td>
+                </tr>
+                
+                <tr>
+                    <td>SBILIFE</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>1775.0</td>
+                </tr>
+                
+                <tr>
+                    <td>SUNPHARMA</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Healthcare</td>
+                    <td>1681.0</td>
+                </tr>
+                
+                <tr>
+                    <td>SUNTV</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Media Entertainment _ Publication</td>
+                    <td>615.0</td>
+                </tr>
+                
+                <tr>
+                    <td>TATAPOWER</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Power</td>
+                    <td>394.0</td>
+                </tr>
+                
+                <tr>
+                    <td>TECHM</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Information Technology</td>
+                    <td>1562.0</td>
+                </tr>
+                
+                <tr>
+                    <td>TRENT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Services</td>
+                    <td>5680.0</td>
+                </tr>
+                
+                <tr>
+                    <td>UPL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Chemicals</td>
+                    <td>645.6</td>
+                </tr>
+                
+                <tr>
+                    <td>WHIRLPOOL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Durables</td>
+                    <td>1266.0</td>
+                </tr>
+                
+                <tr>
+                    <td>ZEEL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Media Entertainment _ Publication</td>
+                    <td>127.57</td>
+                </tr>
+                
+                <tr>
+                    <td>ADANIPORTS</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Services</td>
+                    <td>1453.0</td>
+                </tr>
+                
+                <tr>
+                    <td>AMBUJACEM</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Construction Materials</td>
+                    <td>550.4</td>
+                </tr>
+                
+                <tr>
+                    <td>ASTRAL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Capital Goods</td>
+                    <td>1509.9</td>
+                </tr>
+                
+                <tr>
+                    <td>CANBK</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>116.43</td>
+                </tr>
+                
+                <tr>
+                    <td>FSL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Services</td>
+                    <td>374.0</td>
+                </tr>
+                
+                <tr>
+                    <td>HONAUT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Capital Goods</td>
+                    <td>38970.0</td>
+                </tr>
+                
+                <tr>
+                    <td>IDEA</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Telecommunication</td>
+                    <td>6.82</td>
+                </tr>
+                
+                <tr>
+                    <td>INDHOTEL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Services</td>
+                    <td>773.0</td>
+                </tr>
+                
+                <tr>
+                    <td>IRCTC</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Consumer Services</td>
+                    <td>780.95</td>
+                </tr>
+                
+                <tr>
+                    <td>JINDALSTEL</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Metals _ Mining</td>
+                    <td>951.2</td>
+                </tr>
+                
+                <tr>
+                    <td>JKCEMENT</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Construction Materials</td>
+                    <td>5751.0</td>
+                </tr>
+                
+                <tr>
+                    <td>LUPIN</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Healthcare</td>
+                    <td>1995.5</td>
+                </tr>
+                
+                <tr>
+                    <td>RBLBANK</td>
+                    <td class="bearish">SHORT</td>
+                    <td>Financial Services</td>
+                    <td>207.33</td>
+                </tr>
+                
+                    </table>
+            
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-container">
+                <h3 class="chart-title">Reversal Stocks</h3>
+                <div style="height: 400px; overflow-y: auto;">
+        
+                    <table class="stock-table">
+                        <tr>
+                            <th>Stock</th>
+                            <th>Initial Sentiment</th>
+                            <th>Current Sentiment</th>
+                            <th>Alert Message</th>
+                        </tr>
+            
+                <tr>
+                    <td>ALKEM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>ATUL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>BAJAJ-AUTO</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>CHOLAFIN</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>DALBHARAT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>GNFC</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>HDFCBANK</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>INDUSINDBK</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>JSWSTEEL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>LALPATHLAB</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>LAURUSLABS</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>LICHSGFIN</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>MANAPPURAM</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>MGL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>MPHASIS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>NAVINFLUOR</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>PIDILITIND</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>SBICARD</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>SBILIFE</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>TITAN</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>TRENT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>WHIRLPOOL</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>ADANIENT</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>ADANIPORTS</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>AMBUJACEM</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>ASIANPAINT</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>BALKRISIND</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>CANBK</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>CONCOR</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>HONAUT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>IDEA</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>IEX</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>INDIAMART</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>OFSS</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>PFC</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>PNB</td>
+                    <td class="bearish">SHORT</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                <tr>
+                    <td>RBLBANK</td>
+                    <td class="bullish">ACCUMULATION (trending toward LONG)</td>
+                    <td class="bearish">SHORT</td>
+                    <td>MAJOR REVERSAL: Initial view completely reversed</td>
+                </tr>
+                
+                    </table>
+            
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="chart-title">Smart Money Stocks</h3>
+                <div style="height: 400px; overflow-y: auto;">
+        
+                    <table class="stock-table">
+                        <tr>
+                            <th>Stock</th>
+                            <th>Pattern</th>
+                            <th>Sector</th>
+                            <th>Latest Price</th>
+                        </tr>
+            
+                <tr>
+                    <td>BOSCHLTD</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>31400.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BSOFT</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Information Technology</td>
+                    <td>411.2</td>
+                </tr>
+                
+                <tr>
+                    <td>DIXON</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Consumer Durables</td>
+                    <td>14700.0</td>
+                </tr>
+                
+                <tr>
+                    <td>DRREDDY</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Healthcare</td>
+                    <td>1290.1</td>
+                </tr>
+                
+                <tr>
+                    <td>GRANULES</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Healthcare</td>
+                    <td>532.6</td>
+                </tr>
+                
+                <tr>
+                    <td>HINDUNILVR</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Fast Moving Consumer Goods</td>
+                    <td>2376.0</td>
+                </tr>
+                
+                <tr>
+                    <td>PAGEIND</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Textiles</td>
+                    <td>45850.0</td>
+                </tr>
+                
+                <tr>
+                    <td>BALKRISIND</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>2460.2</td>
+                </tr>
+                
+                <tr>
+                    <td>CUMMINSIND</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Capital Goods</td>
+                    <td>3350.0</td>
+                </tr>
+                
+                <tr>
+                    <td>EXIDEIND</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Automobile and Auto Components</td>
+                    <td>390.5</td>
+                </tr>
+                
+                <tr>
+                    <td>IGL</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>208.1</td>
+                </tr>
+                
+                <tr>
+                    <td>OFSS</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Information Technology</td>
+                    <td>8735.0</td>
+                </tr>
+                
+                <tr>
+                    <td>PIIND</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Chemicals</td>
+                    <td>3907.5</td>
+                </tr>
+                
+                <tr>
+                    <td>RELIANCE</td>
+                    <td>PATTERN 9: Smart Money Leading - FII buying, retail selling, price rising</td>
+                    <td>Oil  Gas _ Consumable Fuels</td>
+                    <td>1442.7</td>
+                </tr>
+                
+                    </table>
+            
+                </div>
+            </div>
+        </div>
+        
+                </div>
+
+                <div class="footer">
+                    <p>Generated by Market Dashboard Generator based on Progressive Analysis System</p>
+                </div>
+            </div>
+
+            <script>
+                // Initialize Plotly charts
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Parse JSON figures
+                    const sentimentFig = {"data": [{"marker": {"color": ["#1E8449", "#82E0AA", "#F7DC6F", "#F5B041", "#C0392B"]}, "name": "Count", "text": ["0.0%", "36.0%", "36.5%", "0.0%", "27.5%"], "textposition": "auto", "x": ["LONG", "ACCUMULATION", "NEUTRAL", "DISTRIBUTION", "SHORT"], "y": [0, 64, 65, 0, 49], "type": "bar"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "margin": {"l": 50, "r": 50, "t": 80, "b": 50}, "title": {"text": "Market Sentiment Distribution"}, "xaxis": {"title": {"text": "Sentiment Category"}}, "yaxis": {"title": {"text": "Number of Stocks"}}, "height": 400}};
+                    const sectorFig = {"data": [{"colorbar": {"title": {"text": "Percentage"}}, "colorscale": [[0, "#ffffff"], [0.25, "#c0ecc0"], [0.5, "#7fba7a"], [0.75, "#3f8f3f"], [1, "#1E8449"]], "showscale": true, "text": [["0.0%", "41.7%", "33.3%", "0.0%", "25.0%"], ["0.0%", "50.0%", "22.2%", "0.0%", "27.8%"], ["0.0%", "33.3%", "50.0%", "0.0%", "16.7%"], ["0.0%", "25.0%", "58.3%", "0.0%", "16.7%"], ["0.0%", "25.0%", "41.7%", "0.0%", "33.3%"], ["0.0%", "54.5%", "27.3%", "0.0%", "18.2%"], ["0.0%", "36.4%", "54.5%", "0.0%", "9.1%"], ["0.0%", "36.4%", "27.3%", "0.0%", "36.4%"], ["0.0%", "40.0%", "40.0%", "0.0%", "20.0%"], ["0.0%", "22.2%", "33.3%", "0.0%", "44.4%"], ["0.0%", "37.5%", "12.5%", "0.0%", "50.0%"], ["0.0%", "14.3%", "28.6%", "0.0%", "57.1%"], ["0.0%", "20.0%", "40.0%", "0.0%", "40.0%"], ["0.0%", "50.0%", "25.0%", "0.0%", "25.0%"], ["0.0%", "25.0%", "50.0%", "0.0%", "25.0%"]], "texttemplate": "%{text}", "x": ["LONG", "ACCUMULATION", "NEUTRAL", "DISTRIBUTION", "SHORT"], "y": ["Financial Services", "Healthcare", "Oil  Gas _ Consumable Fuels", "Capital Goods", "Information Technology", "Automobile and Auto Components", "Fast Moving Consumer Goods", "Chemicals", "Metals _ Mining", "Construction Materials", "Consumer Durables", "Consumer Services", "Services", "Telecommunication", "Power"], "z": [[0.0, 41.66666666666667, 33.33333333333333, 0.0, 25.0], [0.0, 50.0, 22.22222222222222, 0.0, 27.77777777777778], [0.0, 33.33333333333333, 50.0, 0.0, 16.666666666666664], [0.0, 25.0, 58.333333333333336, 0.0, 16.666666666666664], [0.0, 25.0, 41.66666666666667, 0.0, 33.33333333333333], [0.0, 54.54545454545454, 27.27272727272727, 0.0, 18.181818181818183], [0.0, 36.36363636363637, 54.54545454545454, 0.0, 9.090909090909092], [0.0, 36.36363636363637, 27.27272727272727, 0.0, 36.36363636363637], [0.0, 40.0, 40.0, 0.0, 20.0], [0.0, 22.22222222222222, 33.33333333333333, 0.0, 44.44444444444444], [0.0, 37.5, 12.5, 0.0, 50.0], [0.0, 14.285714285714285, 28.57142857142857, 0.0, 57.14285714285714], [0.0, 20.0, 40.0, 0.0, 40.0], [0.0, 50.0, 25.0, 0.0, 25.0], [0.0, 25.0, 50.0, 0.0, 25.0]], "type": "heatmap"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "margin": {"l": 140, "r": 50, "t": 80, "b": 50}, "title": {"text": "Sector Sentiment Heatmap"}, "xaxis": {"title": {"text": "Sentiment Category"}}, "yaxis": {"title": {"text": "Sector"}}, "height": 400}};
+                    const patternFig = {"data": [{"marker": {"color": "#3498db"}, "orientation": "h", "text": ["90", "23", "16", "14", "8", "6", "4", "3", "3", "3"], "textposition": "auto", "x": [90, 23, 16, 14, 8, 6, 4, 3, 3, 3], "y": ["PATTERN 0", "PATTERN 6", "PATTERN 5", "PATTERN 9", "PATTERN 11", "PATTERN 8", "PATTERN 12", "PATTERN 15", "PATTERN 16", "PATTERN 4"], "type": "bar"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "margin": {"l": 200, "r": 50, "t": 80, "b": 50}, "title": {"text": "Top 10 Pattern Distribution"}, "xaxis": {"title": {"text": "Number of Stocks"}}, "yaxis": {"title": {"text": "Pattern"}}, "height": 400}};
+                    const alertFig = {"data": [{"hole": 0.3, "labels": ["GREEN", "YELLOW", "RED"], "marker": {"colors": ["#1E8449", "#F7DC6F", "#C0392B"]}, "textinfo": "label+percent", "values": [1, 140, 37], "type": "pie"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "margin": {"l": 50, "r": 50, "t": 80, "b": 50}, "legend": {"orientation": "v", "yanchor": "middle", "y": 0.5, "xanchor": "right", "x": 1}, "title": {"text": "Alert Distribution"}, "height": 400, "showlegend": true, "annotations": [{"font": {"size": 14}, "showarrow": false, "text": "1 stocks", "x": 0.5, "y": 0.5}]}};
+                    const flowFig = {"data": [{"marker": {"color": "#3498db"}, "name": "FII", "x": ["Positive", "Neutral", "Negative"], "y": [58, 16, 104], "type": "bar"}, {"marker": {"color": "#2ecc71"}, "name": "DII", "x": ["Positive", "Neutral", "Negative"], "y": [55, 22, 101], "type": "bar"}, {"marker": {"color": "#e74c3c"}, "name": "Retail", "x": ["Positive", "Neutral", "Negative"], "y": [62, 42, 74], "type": "bar"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "margin": {"l": 50, "r": 50, "t": 80, "b": 50}, "title": {"text": "Institutional Flow Distribution"}, "xaxis": {"title": {"text": "Flow Direction"}}, "yaxis": {"title": {"text": "Number of Stocks"}}, "barmode": "group", "height": 400}};
+                    const correlationFig = {"data": [{"hoverinfo": "text", "marker": {"color": "green", "opacity": 0.6, "size": 8}, "mode": "markers", "name": "Aligned", "text": ["BEL: ACCUMULATION (trending toward LONG)", "MCX: ACCUMULATION (trending toward LONG)", "NAM-INDIA: ACCUMULATION (trending toward LONG)", "AARTIIND: ACCUMULATION (trending toward LONG)", "MFSL: NEUTRAL", "AUBANK: NEUTRAL", "BHARATFORG: NEUTRAL", "HDFCAMC: SHORT", "ZEEL: SHORT", "NATIONALUM: NEUTRAL", "HAL: ACCUMULATION (trending toward LONG)", "DIVISLAB: ACCUMULATION (trending toward LONG)", "INDIAMART: ACCUMULATION (trending toward LONG)", "CUMMINSIND: ACCUMULATION (trending toward LONG)", "RELIANCE: NEUTRAL", "CONCOR: ACCUMULATION (trending toward LONG)", "TATAMOTORS: ACCUMULATION (trending toward LONG)", "CANFINHOME: NEUTRAL", "PERSISTENT: SHORT", "TATASTEEL: ACCUMULATION (trending toward LONG)", "GRANULES: SHORT", "GUJGASLTD: ACCUMULATION (trending toward LONG)", "POLYCAB: NEUTRAL", "JINDALSTEL: SHORT", "GODREJPROP: ACCUMULATION (trending toward LONG)", "PIIND: NEUTRAL", "APOLLOTYRE: NEUTRAL", "OFSS: ACCUMULATION (trending toward LONG)", "HEROMOTOCO: ACCUMULATION (trending toward LONG)", "HCLTECH: NEUTRAL", "PEL: ACCUMULATION (trending toward LONG)", "ICICIPRULI: ACCUMULATION (trending toward LONG)", "INDUSINDBK: ACCUMULATION (trending toward LONG)", "ASHOKLEY: NEUTRAL", "DRREDDY: ACCUMULATION (trending toward LONG)", "IDFCFIRSTB: ACCUMULATION (trending toward LONG)", "BSOFT: ACCUMULATION (trending toward LONG)", "LT: NEUTRAL", "BOSCHLTD: ACCUMULATION (trending toward LONG)", "VEDL: ACCUMULATION (trending toward LONG)", "ASTRAL: SHORT", "TATACHEM: ACCUMULATION (trending toward LONG)", "GNFC: ACCUMULATION (trending toward LONG)", "SIEMENS: NEUTRAL", "NMDC: NEUTRAL", "LALPATHLAB: ACCUMULATION (trending toward LONG)", "TITAN: ACCUMULATION (trending toward LONG)", "BANDHANBNK: ACCUMULATION (trending toward LONG)", "IEX: ACCUMULATION (trending toward LONG)", "PNB: ACCUMULATION (trending toward LONG)", "SRF: ACCUMULATION (trending toward LONG)", "LAURUSLABS: ACCUMULATION (trending toward LONG)", "HINDALCO: ACCUMULATION (trending toward LONG)", "ADANIENT: ACCUMULATION (trending toward LONG)", "ICICIBANK: NEUTRAL", "BPCL: NEUTRAL", "BERGEPAINT: ACCUMULATION (trending toward LONG)", "BALRAMCHIN: SHORT", "GAIL: ACCUMULATION (trending toward LONG)", "METROPOLIS: ACCUMULATION (trending toward LONG)", "IRCTC: SHORT", "BHARTIARTL: ACCUMULATION (trending toward LONG)", "HDFCBANK: ACCUMULATION (trending toward LONG)", "PETRONET: NEUTRAL", "IGL: ACCUMULATION (trending toward LONG)", "INFY: ACCUMULATION (trending toward LONG)", "PAGEIND: NEUTRAL", "BRITANNIA: NEUTRAL", "TATAPOWER: SHORT", "AXISBANK: SHORT", "EXIDEIND: ACCUMULATION (trending toward LONG)", "TATACOMM: ACCUMULATION (trending toward LONG)", "GLENMARK: NEUTRAL", "INDIGO: NEUTRAL", "ABBOTINDIA: ACCUMULATION (trending toward LONG)", "IOC: ACCUMULATION (trending toward LONG)", "FEDERALBNK: NEUTRAL", "ESCORTS: NEUTRAL", "BALKRISIND: ACCUMULATION (trending toward LONG)", "ONGC: NEUTRAL", "DEEPAKNTR: NEUTRAL", "ICICIGI: NEUTRAL", "SBIN: ACCUMULATION (trending toward LONG)", "DABUR: NEUTRAL", "PIDILITIND: ACCUMULATION (trending toward LONG)", "BIOCON: ACCUMULATION (trending toward LONG)", "INDUSTOWER: NEUTRAL", "CIPLA: NEUTRAL", "MARUTI: ACCUMULATION (trending toward LONG)", "TATACONSUM: ACCUMULATION (trending toward LONG)", "AUROPHARMA: ACCUMULATION (trending toward LONG)", "LTTS: NEUTRAL", "MARICO: NEUTRAL", "HINDUNILVR: ACCUMULATION (trending toward LONG)", "BAJAJFINSV: ACCUMULATION (trending toward LONG)", "UPL: SHORT", "IPCALAB: SHORT", "EICHERMOT: NEUTRAL", "RECLTD: SHORT", "GODREJCP: ACCUMULATION (trending toward LONG)", "COALINDIA: SHORT", "BAJFINANCE: ACCUMULATION (trending toward LONG)", "LUPIN: SHORT", "MANAPPURAM: ACCUMULATION (trending toward LONG)", "ITC: NEUTRAL", "UBL: ACCUMULATION (trending toward LONG)", "PFC: ACCUMULATION (trending toward LONG)", "COLPAL: NEUTRAL", "TCS: NEUTRAL", "APOLLOHOSP: ACCUMULATION (trending toward LONG)", "BATAINDIA: NEUTRAL", "GRASIM: ACCUMULATION (trending toward LONG)", "JUBLFOOD: NEUTRAL", "POWERGRID: NEUTRAL", "MUTHOOTFIN: NEUTRAL", "SUNPHARMA: SHORT", "GMRINFRA: NEUTRAL", "KOTAKBANK: NEUTRAL", "SUNTV: SHORT", "SHREECEM: NEUTRAL", "ACC: NEUTRAL", "TORNTPOWER: NEUTRAL", "SYNGENE: NEUTRAL", "IDEA: SHORT", "CHAMBLFERT: NEUTRAL", "ABFRL: SHORT", "NAUKRI: NEUTRAL"], "x": [43.83211678832117, 41.97137046931695, 39.14656771799629, 34.94736842105263, 33.71260944930886, 32.87292817679558, 32.15123859191656, 30.843116328708643, 30.706967213114755, 25.868832151951004, 25.78242169585642, 24.507938899666616, 24.446145992853502, 23.207061419639572, 23.176093916755608, 23.06278713629403, 22.19927723283428, 22.154184330350137, 21.73913043478261, 21.390168970814152, 21.183162684869174, 21.0828025477707, 21.010719134364038, 20.710659898477164, 20.208977724638057, 20.046082949308754, 19.196083483638237, 19.166177814763778, 18.461167595468012, 18.458579774302397, 18.42767295597484, 18.395176252319107, 18.35666912306558, 18.12626262626262, 18.108578229424147, 18.08059384941676, 18.008322571387573, 17.952704891480394, 17.295918176758217, 17.04787234042554, 16.774941995359637, 16.093672147483815, 15.991493886230737, 15.819209039548024, 15.14462138446539, 15.074566706972995, 14.979810249171077, 14.875635564106094, 14.818652849740937, 14.67745324648035, 14.002205071664827, 13.837261004891054, 13.030383559216926, 12.915560753970034, 12.533807279190176, 12.522686025408348, 12.311582223086662, 12.033960871170182, 11.990604815032288, 11.966666666666667, 11.30986316989738, 10.927347903130538, 10.905940172154203, 10.895361380798258, 10.720936419260445, 10.648444729162211, 10.482060821760033, 10.434782608695652, 10.426008968609862, 10.26615969581749, 9.737248840803703, 9.565495207667734, 9.463110495323859, 9.343837255684084, 9.058769410479638, 8.914758965544193, 8.889588581024348, 8.738885327810921, 8.378854625550652, 8.100748808713409, 7.901907356948229, 7.901234567901229, 7.716955941255001, 7.6472538402033425, 7.298245614035087, 7.285412948239508, 7.255696910387263, 6.932682646763305, 6.862093112362859, 6.14503816793894, 5.874846178387498, 5.819070904645477, 5.785498489425975, 5.6000000000000005, 5.146780559009572, 5.120898803223976, 4.901215805471125, 4.442344045368627, 4.441854441854436, 4.380001721022295, 4.275534441805238, 3.8986740550168175, 3.6246559692579297, 3.616748463545124, 3.1223110018438818, 3.0534351145038165, 3.017295795985352, 2.7349390026993814, 2.7092846270928463, 2.6584257949214387, 1.80976430976431, 1.7677974199713367, 1.6228232678769983, 1.2730087734388598, 0.4617168865839595, 0.23254427285195226, 0.0, -0.2592954990215242, -2.3499523658304153, -2.356857831452767, -2.3642007242628065, -6.5952239200899685, -7.378223495702006, -7.837837837837839, -10.123597332899658, -68.74113115751065, -76.88323917137477], "y": [1, 0, 1, 0, 0, 0, 2, 0, 0, 2, 0, 1, 3, 1, 0, 3, 0, 2, 0, 1, 0, 1, 0, 0, 0, 2, 0, 3, 0, 0, 0, 1, 3, 2, 0, 0, 1, 0, 0, 1, 0, 0, 3, 2, 0, 3, 3, 1, 3, 3, 0, 3, 1, 3, 2, 0, 0, 0, 0, 0, 0, 0, 3, 2, 0, 0, 2, 0, 0, 0, 1, 0, 2, 0, 0, 1, 2, 0, 3, 0, 0, 2, 1, 0, 3, 0, 2, 2, 0, 1, 0, 0, 0, 1, 1, 0, 0, 2, 0, 1, 0, 0, 0, 3, 2, 1, 3, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, -2, -1, 0, -1, -1, -3, 0, 0, 0], "type": "scatter"}, {"hoverinfo": "text", "marker": {"color": "red", "opacity": 0.6, "size": 8}, "mode": "markers", "name": "Divergent", "text": ["INTELLECT: SHORT", "ATUL: SHORT", "DLF: NEUTRAL", "HINDCOPPER: NEUTRAL", "CANBK: SHORT", "ADANIPORTS: SHORT", "SAIL: NEUTRAL", "MRF: SHORT", "ABCAPITAL: NEUTRAL", "CUB: NEUTRAL", "WHIRLPOOL: SHORT", "INDIACEM: SHORT", "RBLBANK: SHORT", "OBEROIRLTY: NEUTRAL", "BHEL: NEUTRAL", "SBILIFE: SHORT", "TECHM: SHORT", "ABB: NEUTRAL", "FSL: SHORT", "JKCEMENT: SHORT", "TRENT: SHORT", "MPHASIS: SHORT", "HONAUT: SHORT", "BAJAJ-AUTO: SHORT", "DIXON: SHORT", "DALBHARAT: SHORT", "HINDPETRO: NEUTRAL", "SBICARD: SHORT", "COROMANDEL: SHORT", "GSPL: NEUTRAL", "NAVINFLUOR: SHORT", "TVSMOTOR: NEUTRAL", "HDFCLIFE: NEUTRAL", "CHOLAFIN: SHORT", "BANKBARODA: NEUTRAL", "LICHSGFIN: SHORT", "RAMCOCEM: NEUTRAL", "NESTLEIND: NEUTRAL", "CROMPTON: SHORT", "JSWSTEEL: SHORT", "AMBUJACEM: SHORT", "ALKEM: SHORT", "INDHOTEL: SHORT", "WIPRO: NEUTRAL", "HAVELLS: SHORT", "MGL: SHORT", "ULTRACEMCO: ACCUMULATION (trending toward LONG)", "TORNTPHARM: NEUTRAL", "ASIANPAINT: ACCUMULATION (trending toward LONG)", "NTPC: ACCUMULATION (trending toward LONG)", "COFORGE: NEUTRAL"], "x": [89.16453265044817, 39.56446328772403, 35.64144736842106, 34.99205929062995, 33.367697594501735, 29.848078641644328, 26.932620729146784, 26.43003561619451, 24.171270718232044, 23.656249999999996, 22.413459678978914, 21.86139332365747, 21.636843649163993, 21.425924054044952, 21.131551212034104, 20.91280653950954, 20.809002668316637, 20.755093887335196, 20.64516129032258, 20.062630480167016, 19.703691215055684, 19.673918195175123, 18.996181556965947, 16.95495114073244, 16.343490304709142, 16.098805134318436, 15.445402298850574, 15.422276621787026, 15.149551345962116, 15.137853303277257, 14.440650219340323, 14.277318332563702, 14.050206069689022, 9.653599739385395, 9.424676625582503, 9.217597231077495, 8.730931515741648, 6.430155210643015, 6.013901480809923, 4.365591397849465, 3.458646616541349, 2.8914997131870313, 2.3976685653729004, 2.0769072588936797, 1.9780971937029495, 0.0534228802564333, -0.9646644048578661, -2.5844004656577413, -4.351535836177475, -6.04717655468191, -72.34375], "y": [-2, -3, -1, -1, -3, -3, -1, -2, -1, -1, -3, -2, -3, -1, -1, -3, -2, -1, -2, -2, -3, -3, -3, -3, -2, -3, -1, -3, -2, -1, -3, -1, -1, -3, -1, -3, -1, -1, -2, -3, -3, -3, -2, -1, -2, -3, 1, 2, 3, 1, 2], "type": "scatter"}], "layout": {"template": {"data": {"barpolar": [{"marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "barpolar"}], "bar": [{"error_x": {"color": "#2a3f5f"}, "error_y": {"color": "#2a3f5f"}, "marker": {"line": {"color": "white", "width": 0.5}, "pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "bar"}], "carpet": [{"aaxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "baxis": {"endlinecolor": "#2a3f5f", "gridcolor": "#C8D4E3", "linecolor": "#C8D4E3", "minorgridcolor": "#C8D4E3", "startlinecolor": "#2a3f5f"}, "type": "carpet"}], "choropleth": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "choropleth"}], "contourcarpet": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "contourcarpet"}], "contour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "contour"}], "heatmapgl": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmapgl"}], "heatmap": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "heatmap"}], "histogram2dcontour": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2dcontour"}], "histogram2d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "histogram2d"}], "histogram": [{"marker": {"pattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}}, "type": "histogram"}], "mesh3d": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "type": "mesh3d"}], "parcoords": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "parcoords"}], "pie": [{"automargin": true, "type": "pie"}], "scatter3d": [{"line": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatter3d"}], "scattercarpet": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattercarpet"}], "scattergeo": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergeo"}], "scattergl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattergl"}], "scattermapbox": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scattermapbox"}], "scatterpolargl": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolargl"}], "scatterpolar": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterpolar"}], "scatter": [{"fillpattern": {"fillmode": "overlay", "size": 10, "solidity": 0.2}, "type": "scatter"}], "scatterternary": [{"marker": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "type": "scatterternary"}], "surface": [{"colorbar": {"outlinewidth": 0, "ticks": ""}, "colorscale": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "type": "surface"}], "table": [{"cells": {"fill": {"color": "#EBF0F8"}, "line": {"color": "white"}}, "header": {"fill": {"color": "#C8D4E3"}, "line": {"color": "white"}}, "type": "table"}]}, "layout": {"annotationdefaults": {"arrowcolor": "#2a3f5f", "arrowhead": 0, "arrowwidth": 1}, "autotypenumbers": "strict", "coloraxis": {"colorbar": {"outlinewidth": 0, "ticks": ""}}, "colorscale": {"diverging": [[0, "#8e0152"], [0.1, "#c51b7d"], [0.2, "#de77ae"], [0.3, "#f1b6da"], [0.4, "#fde0ef"], [0.5, "#f7f7f7"], [0.6, "#e6f5d0"], [0.7, "#b8e186"], [0.8, "#7fbc41"], [0.9, "#4d9221"], [1, "#276419"]], "sequential": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]], "sequentialminus": [[0.0, "#0d0887"], [0.1111111111111111, "#46039f"], [0.2222222222222222, "#7201a8"], [0.3333333333333333, "#9c179e"], [0.4444444444444444, "#bd3786"], [0.5555555555555556, "#d8576b"], [0.6666666666666666, "#ed7953"], [0.7777777777777778, "#fb9f3a"], [0.8888888888888888, "#fdca26"], [1.0, "#f0f921"]]}, "colorway": ["#636efa", "#EF553B", "#00cc96", "#ab63fa", "#FFA15A", "#19d3f3", "#FF6692", "#B6E880", "#FF97FF", "#FECB52"], "font": {"color": "#2a3f5f"}, "geo": {"bgcolor": "white", "lakecolor": "white", "landcolor": "white", "showlakes": true, "showland": true, "subunitcolor": "#C8D4E3"}, "hoverlabel": {"align": "left"}, "hovermode": "closest", "mapbox": {"style": "light"}, "paper_bgcolor": "white", "plot_bgcolor": "white", "polar": {"angularaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}, "bgcolor": "white", "radialaxis": {"gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": ""}}, "scene": {"xaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "yaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}, "zaxis": {"backgroundcolor": "white", "gridcolor": "#DFE8F3", "gridwidth": 2, "linecolor": "#EBF0F8", "showbackground": true, "ticks": "", "zerolinecolor": "#EBF0F8"}}, "shapedefaults": {"line": {"color": "#2a3f5f"}}, "ternary": {"aaxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "baxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}, "bgcolor": "white", "caxis": {"gridcolor": "#DFE8F3", "linecolor": "#A2B1C6", "ticks": ""}}, "title": {"x": 0.05}, "xaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}, "yaxis": {"automargin": true, "gridcolor": "#EBF0F8", "linecolor": "#EBF0F8", "ticks": "", "title": {"standoff": 15}, "zerolinecolor": "#EBF0F8", "zerolinewidth": 2}}}, "shapes": [{"line": {"color": "gray", "dash": "dash", "width": 1}, "type": "line", "x0": -100, "x1": 100, "y0": 0, "y1": 0}, {"line": {"color": "gray", "dash": "dash", "width": 1}, "type": "line", "x0": 0, "x1": 0, "y0": -4, "y1": 4}], "annotations": [{"font": {"color": "green", "size": 10}, "showarrow": false, "text": "Price \u2191<br>Sentiment \u2191", "x": 25, "y": 2}, {"font": {"color": "orange", "size": 10}, "showarrow": false, "text": "Price \u2193<br>Sentiment \u2191", "x": -25, "y": 2}, {"font": {"color": "red", "size": 10}, "showarrow": false, "text": "Price \u2193<br>Sentiment \u2193", "x": -25, "y": -2}, {"font": {"color": "orange", "size": 10}, "showarrow": false, "text": "Price \u2191<br>Sentiment \u2193", "x": 25, "y": -2}], "margin": {"l": 50, "r": 50, "t": 80, "b": 50}, "xaxis": {"title": {"text": "Price Change (%)"}, "range": [-40, 40]}, "yaxis": {"title": {"text": "Sentiment Change"}, "range": [-3, 3]}, "title": {"text": "Price Change vs Sentiment Change"}, "height": 400}};
+
+                    // Create charts
+                    Plotly.newPlot('sentiment-chart', sentimentFig.data, sentimentFig.layout);
+                    Plotly.newPlot('sector-chart', sectorFig.data, sectorFig.layout);
+                    Plotly.newPlot('pattern-chart', patternFig.data, patternFig.layout);
+                    Plotly.newPlot('alert-chart', alertFig.data, alertFig.layout);
+                    Plotly.newPlot('flow-chart', flowFig.data, flowFig.layout);
+                    Plotly.newPlot('correlation-chart', correlationFig.data, correlationFig.layout);
+
+                    // Add resize handler
+                    window.addEventListener('resize', function() {
+                        Plotly.Plots.resize('sentiment-chart');
+                        Plotly.Plots.resize('sector-chart');
+                        Plotly.Plots.resize('pattern-chart');
+                        Plotly.Plots.resize('alert-chart');
+                        Plotly.Plots.resize('flow-chart');
+                        Plotly.Plots.resize('correlation-chart');
+                    });
+                });
+
+                // Tab switching function
+                function openTab(evt, tabName) {
+                    // Hide all tab contents
+                    var tabContents = document.getElementsByClassName("tab-content");
+                    for (var i = 0; i < tabContents.length; i++) {
+                        tabContents[i].classList.remove("active");
+                    }
+
+                    // Remove active class from all tab buttons
+                    var tabButtons = document.getElementsByClassName("tab-button");
+                    for (var i = 0; i < tabButtons.length; i++) {
+                        tabButtons[i].classList.remove("active");
+                    }
+
+                    // Show the specific tab content
+                    document.getElementById(tabName).classList.add("active");
+
+                    // Add active class to the clicked button
+                    evt.currentTarget.classList.add("active");
+
+                    // Resize Plotly charts after tab switch
+                    setTimeout(function() {
+                        window.dispatchEvent(new Event('resize'));
+                    }, 10);
+                }
+            </script>
+        </body>
+        </html>
+        
