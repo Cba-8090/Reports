@@ -14,6 +14,7 @@ from tabulate import tabulate
 
 import base64
 from io import BytesIO
+
 import json
 import webbrowser
 
@@ -29,6 +30,49 @@ class StockPerformanceAnalyzer:
         self.base_html_path = r"C:\Projects\apps\institutional_flow_quant\output\progressive_analysis"
         self.output_html_path = r"C:\Projects\apps\institutional_flow_quant\output\progressive_analysis"
 
+    def format_price(self, price) -> str:
+        """Format price values for display"""
+        if price is None or pd.isna(price):
+            return "N/A"
+        return f"₹{price:.2f}"
+
+
+    def format_percentage(self, percentage) -> str:
+        """Format percentage values for display"""
+        if percentage is None or pd.isna(percentage):
+            return "N/A"
+        return f"{percentage:.2f}%"
+
+
+    def get_return_class(self, return_value) -> str:
+        """Get CSS class based on return value"""
+        if return_value is None or pd.isna(return_value):
+            return "neutral"
+        return "positive" if return_value >= 0 else "negative"
+
+
+    def get_performance_badge(self, return_value) -> str:
+        """Get performance badge based on return value"""
+        if return_value is None or pd.isna(return_value):
+            return '<span class="badge neutral">N/A</span>'
+
+        if return_value >= 15:
+            return '<span class="badge excellent">🚀 Excellent</span>'
+        elif return_value >= 8:
+            return '<span class="badge very-good">⭐ Very Good</span>'
+        elif return_value >= 2:
+            return '<span class="badge good">✅ Good</span>'
+        elif return_value > 0:
+            return '<span class="badge slight-positive">📈 Slight Gain</span>'
+        elif return_value == 0:
+            return '<span class="badge neutral">➖ Flat</span>'
+        elif return_value >= -2:
+            return '<span class="badge slight-negative">📉 Slight Loss</span>'
+        elif return_value >= -5:
+            return '<span class="badge poor">⚠️ Poor</span>'
+        else:
+            return '<span class="badge very-poor">❌ Very Poor</span>'
+        
     def create_chart_base64(self, fig):
         """Convert matplotlib figure to base64 string for HTML embedding"""
         buffer = BytesIO()
@@ -438,43 +482,201 @@ class StockPerformanceAnalyzer:
         return html
 
     def generate_performers_table(self, data: pd.DataFrame, section_name: str) -> str:
-        """Generate top performers table for a section"""
-        # Create unique IDs for each section
-        tab_7d_id = f"{section_name}-7d-tab"
-        tab_15d_id = f"{section_name}-15d-tab"
+        """Generate comprehensive stock performance table for a section"""
+        try:
+            if data.empty:
+                return "<p>No performance data available for this section.</p>"
 
-        html = f"""
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab(event, '{tab_7d_id}')">7-Day Performance</button>
-                <button class="tab-button" onclick="showTab(event, '{tab_15d_id}')">15-Day Performance</button>
+            # Validate required columns exist
+            required_columns = ['symbol', 'initial_price']
+            missing_columns = [col for col in required_columns if col not in data.columns]
+            if missing_columns:
+                return f"<p>Missing required columns: {', '.join(missing_columns)}</p>"
+
+            # Create unique IDs for each section
+            tab_7d_id = f"{section_name}-7d-tab"
+            tab_15d_id = f"{section_name}-15d-tab"
+            tab_all_id = f"{section_name}-all-tab"
+
+            html = f"""
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab(event, '{tab_all_id}')">All Stocks</button>
+                    <button class="tab-button" onclick="showTab(event, '{tab_7d_id}')">7-Day Performance</button>
+                    <button class="tab-button" onclick="showTab(event, '{tab_15d_id}')">15-Day Performance</button>
+                </div>
+            """
+
+            # All stocks table with complete data
+            html += f"""
+            <div id="{tab_all_id}" class="tab-content active">
+                <h4>📋 Complete Stock Performance Data</h4>
+                <div class="table-responsive">
+                    <table class="performers-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Initial Price</th>
+                                <th>7D Price</th>
+                                <th>7D Return (%)</th>
+                                <th>7D Max Gain (%)</th>
+                                <th>7D Max Loss (%)</th>
+                                <th>15D Price</th>
+                                <th>15D Return (%)</th>
+                                <th>15D Max Gain (%)</th>
+                                <th>15D Max Loss (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            """
+
+            # Sort by symbol for consistent ordering
+            sorted_data = data.sort_values('symbol')
+
+            for _, row in sorted_data.iterrows():
+                html += f"""
+                            <tr>
+                                <td class="stock-symbol">{row['symbol']}</td>
+                                <td>{self.format_price(row.get('initial_price'))}</td>
+                                <td>{self.format_price(row.get('price_7d'))}</td>
+                                <td class="{self.get_return_class(row.get('return_7d'))}">{self.format_percentage(row.get('return_7d'))}</td>
+                                <td class="positive">{self.format_percentage(row.get('max_gain_7d'))}</td>
+                                <td class="negative">{self.format_percentage(row.get('max_loss_7d'))}</td>
+                                <td>{self.format_price(row.get('price_15d'))}</td>
+                                <td class="{self.get_return_class(row.get('return_15d'))}">{self.format_percentage(row.get('return_15d'))}</td>
+                                <td class="positive">{self.format_percentage(row.get('max_gain_15d'))}</td>
+                                <td class="negative">{self.format_percentage(row.get('max_loss_15d'))}</td>
+                            </tr>
+                """
+
+            html += """
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        """
+            """
 
-        # 7-day top performers
-        if 'return_7d' in data.columns:
-            valid_7d = data[data['return_7d'].notna()].copy()
-            if not valid_7d.empty:
-                top_5 = valid_7d.nlargest(5, 'return_7d')
-                html += f"""
-                <div id="{tab_7d_id}" class="tab-content active">
-                    <h4>🏆 Top 5 Performers (7-Day)</h4>
-                    <!-- rest of table HTML -->
-                """
+            # 7-day performance table (sorted by performance)
+            if 'return_7d' in data.columns:
+                valid_7d = data[data['return_7d'].notna()].copy()
+                if not valid_7d.empty:
+                    sorted_7d = valid_7d.sort_values('return_7d', ascending=False)
 
-        # 15-day top performers
-        if 'return_15d' in data.columns:
-            valid_15d = data[data['return_15d'].notna()].copy()
-            if not valid_15d.empty:
-                top_5 = valid_15d.nlargest(5, 'return_15d')
-                html += f"""
-                <div id="{tab_15d_id}" class="tab-content">
-                    <h4>🏆 Top 5 Performers (15-Day)</h4>
-                    <!-- rest of table HTML -->
-                """
+                    html += f"""
+                    <div id="{tab_7d_id}" class="tab-content">
+                        <h4>📈 7-Day Performance Rankings</h4>
+                        <div class="performance-summary">
+                            <div class="summary-stat">
+                                <span class="stat-label">Total Stocks:</span>
+                                <span class="stat-value">{len(sorted_7d)}</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Positive Returns:</span>
+                                <span class="stat-value positive">{len(sorted_7d[sorted_7d['return_7d'] > 0])}</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Success Rate:</span>
+                                <span class="stat-value">{len(sorted_7d[sorted_7d['return_7d'] > 0]) / len(sorted_7d) * 100:.1f}%</span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="performers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Symbol</th>
+                                        <th>Initial Price</th>
+                                        <th>7D Price</th>
+                                        <th>7D Return (%)</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    """
 
-        html += "</div>"
-        return html
+                    for rank, (_, row) in enumerate(sorted_7d.iterrows(), 1):
+                        performance_badge = self.get_performance_badge(row.get('return_7d'))
+                        html += f"""
+                                    <tr>
+                                        <td class="rank">{rank}</td>
+                                        <td class="stock-symbol">{row['symbol']}</td>
+                                        <td>{self.format_price(row.get('initial_price'))}</td>
+                                        <td>{self.format_price(row.get('price_7d'))}</td>
+                                        <td class="{self.get_return_class(row.get('return_7d'))}">{self.format_percentage(row.get('return_7d'))}</td>
+                                        <td>{performance_badge}</td>
+                                    </tr>
+                        """
+
+                    html += """
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    """
+
+            # 15-day performance table
+            if 'return_15d' in data.columns:
+                valid_15d = data[data['return_15d'].notna()].copy()
+                if not valid_15d.empty:
+                    sorted_15d = valid_15d.sort_values('return_15d', ascending=False)
+
+                    html += f"""
+                    <div id="{tab_15d_id}" class="tab-content">
+                        <h4>📈 15-Day Performance Rankings</h4>
+                        <div class="performance-summary">
+                            <div class="summary-stat">
+                                <span class="stat-label">Total Stocks:</span>
+                                <span class="stat-value">{len(sorted_15d)}</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Positive Returns:</span>
+                                <span class="stat-value positive">{len(sorted_15d[sorted_15d['return_15d'] > 0])}</span>
+                            </div>
+                            <div class="summary-stat">
+                                <span class="stat-label">Success Rate:</span>
+                                <span class="stat-value">{len(sorted_15d[sorted_15d['return_15d'] > 0]) / len(sorted_15d) * 100:.1f}%</span>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="performers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Symbol</th>
+                                        <th>Initial Price</th>
+                                        <th>15D Price</th>
+                                        <th>15D Return (%)</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    """
+
+                    for rank, (_, row) in enumerate(sorted_15d.iterrows(), 1):
+                        performance_badge = self.get_performance_badge(row.get('return_15d'))
+                        html += f"""
+                                    <tr>
+                                        <td class="rank">{rank}</td>
+                                        <td class="stock-symbol">{row['symbol']}</td>
+                                        <td>{self.format_price(row.get('initial_price'))}</td>
+                                        <td>{self.format_price(row.get('price_15d'))}</td>
+                                        <td class="{self.get_return_class(row.get('return_15d'))}">{self.format_percentage(row.get('return_15d'))}</td>
+                                        <td>{performance_badge}</td>
+                                    </tr>
+                        """
+
+                    html += """
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    """
+
+            html += "</div>"
+            return html
+
+        except Exception as e:
+            return f"<p>Error generating performance table: {str(e)}</p>"
 
     def generate_insights_html(self, analysis_results: Dict[str, Dict]) -> str:
         """Generate insights section HTML"""
@@ -1273,7 +1475,7 @@ class StockPerformanceAnalyzer:
         plt.show()
 
     def get_css_styles(self) -> str:
-        """Return CSS styles for the HTML report"""
+        """Return enhanced CSS styles for the HTML report"""
         return """
             * {
                 margin: 0;
@@ -1391,165 +1593,306 @@ class StockPerformanceAnalyzer:
             }
 
             .section-analysis {
-                margin-bottom: 40px;
-                border: 1px solid #ecf0f1;
-                border-radius: 10px;
-                overflow: hidden;
-            }
+               margin-bottom: 40px;
+               border: 1px solid #ecf0f1;
+               border-radius: 10px;
+               overflow: hidden;
+           }
 
-            .section-header {
-                background: linear-gradient(135deg, #3498db, #2980b9);
-                color: white;
-                padding: 20px;
-                font-size: 1.3em;
-                font-weight: 600;
-            }
+           .section-header {
+               background: linear-gradient(135deg, #3498db, #2980b9);
+               color: white;
+               padding: 20px;
+               font-size: 1.3em;
+               font-weight: 600;
+           }
 
-            .section-content {
-                padding: 25px;
-            }
+           .section-content {
+               padding: 25px;
+           }
 
-            .performance-stats {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 25px;
-            }
+           .performance-stats {
+               display: grid;
+               grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+               gap: 20px;
+               margin-bottom: 25px;
+           }
 
-            .stat-box {
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 8px;
-                text-align: center;
-                border-left: 4px solid #3498db;
-            }
+           .stat-box {
+               background: #f8f9fa;
+               padding: 15px;
+               border-radius: 8px;
+               text-align: center;
+               border-left: 4px solid #3498db;
+           }
 
-            .stat-label {
-                color: #7f8c8d;
-                font-size: 0.9em;
-                margin-bottom: 5px;
-            }
+           .stat-label {
+               color: #7f8c8d;
+               font-size: 0.9em;
+               margin-bottom: 5px;
+           }
 
-            .stat-value {
-                font-size: 1.4em;
-                font-weight: 600;
-                color: #2c3e50;
-            }
+           .stat-value {
+               font-size: 1.4em;
+               font-weight: 600;
+               color: #2c3e50;
+           }
 
-            .performers-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            }
+           .insights-list {
+               list-style: none;
+           }
 
-            .performers-table th {
-                background: #34495e;
-                color: white;
-                padding: 12px;
-                text-align: left;
-                font-weight: 600;
-            }
+           .insights-list li {
+               background: #f8f9fa;
+               margin-bottom: 15px;
+               padding: 15px;
+               border-radius: 8px;
+               border-left: 4px solid #f39c12;
+           }
 
-            .performers-table td {
-                padding: 10px 12px;
-                border-bottom: 1px solid #ecf0f1;
-            }
+           .footer {
+               text-align: center;
+               padding: 20px;
+               color: white;
+               background: rgba(255,255,255,0.1);
+               border-radius: 10px;
+           }
 
-            .performers-table tr:nth-child(even) {
-                background: #f8f9fa;
-            }
+           .tab-container {
+               margin-bottom: 20px;
+           }
 
-            .performers-table tr:hover {
-                background: #e3f2fd;
-            }
+           .tab-buttons {
+               display: flex;
+               background: #ecf0f1;
+               border-radius: 8px;
+               padding: 5px;
+               margin-bottom: 20px;
+           }
 
-            .positive {
-                color: #27ae60;
-                font-weight: 600;
-            }
+           .tab-button {
+               flex: 1;
+               padding: 10px 20px;
+               background: transparent;
+               border: none;
+               border-radius: 5px;
+               cursor: pointer;
+               font-weight: 500;
+               transition: all 0.2s ease;
+           }
 
-            .negative {
-                color: #e74c3c;
-                font-weight: 600;
-            }
+           .tab-button.active {
+               background: #3498db;
+               color: white;
+           }
 
-            .insights-list {
-                list-style: none;
-            }
+           .tab-content {
+               display: none;
+           }
 
-            .insights-list li {
-                background: #f8f9fa;
-                margin-bottom: 15px;
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #f39c12;
-            }
+           .tab-content.active {
+               display: block;
+           }
 
-            .footer {
-                text-align: center;
-                padding: 20px;
-                color: white;
-                background: rgba(255,255,255,0.1);
-                border-radius: 10px;
-            }
+           /* Enhanced table styles */
+           .table-responsive {
+               overflow-x: auto;
+               margin: 20px 0;
+               border-radius: 8px;
+               box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+           }
 
-            .tab-container {
-                margin-bottom: 20px;
-            }
+           .performers-table {
+               width: 100%;
+               border-collapse: collapse;
+               background: white;
+               font-size: 0.9em;
+           }
 
-            .tab-buttons {
-                display: flex;
-                background: #ecf0f1;
-                border-radius: 8px;
-                padding: 5px;
-                margin-bottom: 20px;
-            }
+           .performers-table th {
+               background: linear-gradient(135deg, #34495e, #2c3e50);
+               color: white;
+               padding: 12px 8px;
+               text-align: center;
+               font-weight: 600;
+               font-size: 0.85em;
+               border-right: 1px solid rgba(255,255,255,0.1);
+           }
 
-            .tab-button {
-                flex: 1;
-                padding: 10px 20px;
-                background: transparent;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-weight: 500;
-                transition: all 0.2s ease;
-            }
+           .performers-table td {
+               padding: 10px 8px;
+               text-align: center;
+               border-bottom: 1px solid #ecf0f1;
+               border-right: 1px solid #ecf0f1;
+           }
 
-            .tab-button.active {
-                background: #3498db;
-                color: white;
-            }
+           .performers-table tbody tr:nth-child(even) {
+               background: #f8f9fa;
+           }
 
-            .tab-content {
-                display: none;
-            }
+           .performers-table tbody tr:hover {
+               background: #e3f2fd;
+               transition: background-color 0.2s ease;
+           }
 
-            .tab-content.active {
-                display: block;
-            }
+           .stock-symbol {
+               font-weight: 600;
+               color: #2c3e50;
+               font-family: 'Courier New', monospace;
+           }
 
-            @media (max-width: 768px) {
-                .container {
-                    padding: 10px;
-                }
+           .rank {
+               font-weight: 600;
+               color: #7f8c8d;
+               font-size: 0.9em;
+           }
 
-                .header h1 {
-                    font-size: 2em;
-                }
+           .positive {
+               color: #27ae60;
+               font-weight: 600;
+           }
 
-                .performance-stats {
-                    grid-template-columns: 1fr;
-                }
+           .negative {
+               color: #e74c3c;
+               font-weight: 600;
+           }
 
-                .performers-table {
-                    font-size: 0.9em;
-                }
-            }
-        """
+           .neutral {
+               color: #7f8c8d;
+               font-style: italic;
+           }
+
+           /* Performance badges */
+           .badge {
+               padding: 4px 8px;
+               border-radius: 12px;
+               font-size: 0.75em;
+               font-weight: 600;
+               text-align: center;
+               display: inline-block;
+               min-width: 80px;
+           }
+
+           .badge.excellent {
+               background: linear-gradient(135deg, #27ae60, #2ecc71);
+               color: white;
+           }
+
+           .badge.very-good {
+               background: linear-gradient(135deg, #16a085, #1abc9c);
+               color: white;
+           }
+
+           .badge.good {
+               background: linear-gradient(135deg, #f39c12, #e67e22);
+               color: white;
+           }
+
+           .badge.slight-positive {
+               background: linear-gradient(135deg, #3498db, #2980b9);
+               color: white;
+           }
+
+           .badge.neutral {
+               background: #95a5a6;
+               color: white;
+           }
+
+           .badge.slight-negative {
+               background: linear-gradient(135deg, #e67e22, #d35400);
+               color: white;
+           }
+
+           .badge.poor {
+               background: linear-gradient(135deg, #e74c3c, #c0392b);
+               color: white;
+           }
+
+           .badge.very-poor {
+               background: linear-gradient(135deg, #8e44ad, #9b59b6);
+               color: white;
+           }
+
+           /* Performance summary */
+           .performance-summary {
+               display: grid;
+               grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+               gap: 15px;
+               margin: 20px 0;
+               padding: 20px;
+               background: #f8f9fa;
+               border-radius: 8px;
+               border-left: 4px solid #3498db;
+           }
+
+           .summary-stat {
+               text-align: center;
+           }
+
+           .summary-stat .stat-label {
+               display: block;
+               color: #7f8c8d;
+               font-size: 0.85em;
+               margin-bottom: 5px;
+           }
+
+           .summary-stat .stat-value {
+               display: block;
+               font-size: 1.2em;
+               font-weight: 600;
+               color: #2c3e50;
+           }
+
+           @media (max-width: 768px) {
+               .container {
+                   padding: 10px;
+               }
+
+               .header h1 {
+                   font-size: 2em;
+               }
+
+               .performance-stats {
+                   grid-template-columns: 1fr;
+               }
+
+               .performers-table {
+                   font-size: 0.8em;
+               }
+
+               .performers-table th,
+               .performers-table td {
+                   padding: 8px 4px;
+               }
+
+               .performance-summary {
+                   grid-template-columns: repeat(2, 1fr);
+               }
+
+               .badge {
+                   font-size: 0.7em;
+                   padding: 3px 6px;
+                   min-width: 60px;
+               }
+           }
+
+           /* Print styles */
+           @media print {
+               .tab-buttons {
+                   display: none;
+               }
+
+               .tab-content {
+                   display: block !important;
+                   page-break-inside: avoid;
+               }
+
+               .performers-table {
+                   font-size: 0.8em;
+               }
+           }
+       """
+
     
     def generate_summary_report(self, analysis_results: Dict[str, Dict]):
         """
@@ -1679,6 +2022,214 @@ class StockPerformanceAnalyzer:
         
         if not insights:
             print("• No significant insights could be generated from the available data.")
+
+
+
+
+
+
+    def get_enhanced_css_styles(self) -> str:
+        """Return enhanced CSS styles including new table styles"""
+        base_css = self.get_css_styles()  # Get existing CSS
+
+        enhanced_css = base_css + """
+    
+            /* Enhanced table styles */
+            .table-responsive {
+                overflow-x: auto;
+                margin: 20px 0;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+    
+            .performers-table {
+                width: 100%;
+                border-collapse: collapse;
+                background: white;
+                font-size: 0.9em;
+            }
+    
+            .performers-table th {
+                background: linear-gradient(135deg, #34495e, #2c3e50);
+                color: white;
+                padding: 12px 8px;
+                text-align: center;
+                font-weight: 600;
+                font-size: 0.85em;
+                border-right: 1px solid rgba(255,255,255,0.1);
+            }
+    
+            .performers-table td {
+                padding: 10px 8px;
+                text-align: center;
+                border-bottom: 1px solid #ecf0f1;
+                border-right: 1px solid #ecf0f1;
+            }
+    
+            .performers-table tbody tr:nth-child(even) {
+                background: #f8f9fa;
+            }
+    
+            .performers-table tbody tr:hover {
+                background: #e3f2fd;
+                transition: background-color 0.2s ease;
+            }
+    
+            .stock-symbol {
+                font-weight: 600;
+                color: #2c3e50;
+                font-family: 'Courier New', monospace;
+            }
+    
+            .rank {
+                font-weight: 600;
+                color: #7f8c8d;
+                font-size: 0.9em;
+            }
+    
+            .positive {
+                color: #27ae60;
+                font-weight: 600;
+            }
+    
+            .negative {
+                color: #e74c3c;
+                font-weight: 600;
+            }
+    
+            .neutral {
+                color: #7f8c8d;
+                font-style: italic;
+            }
+    
+            /* Performance badges */
+            .badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 0.75em;
+                font-weight: 600;
+                text-align: center;
+                display: inline-block;
+                min-width: 80px;
+            }
+    
+            .badge.excellent {
+                background: linear-gradient(135deg, #27ae60, #2ecc71);
+                color: white;
+            }
+    
+            .badge.very-good {
+                background: linear-gradient(135deg, #16a085, #1abc9c);
+                color: white;
+            }
+    
+            .badge.good {
+                background: linear-gradient(135deg, #f39c12, #e67e22);
+                color: white;
+            }
+    
+            .badge.slight-positive {
+                background: linear-gradient(135deg, #3498db, #2980b9);
+                color: white;
+            }
+    
+            .badge.neutral {
+                background: #95a5a6;
+                color: white;
+            }
+    
+            .badge.slight-negative {
+                background: linear-gradient(135deg, #e67e22, #d35400);
+                color: white;
+            }
+    
+            .badge.poor {
+                background: linear-gradient(135deg, #e74c3c, #c0392b);
+                color: white;
+            }
+    
+            .badge.very-poor {
+                background: linear-gradient(135deg, #8e44ad, #9b59b6);
+                color: white;
+            }
+    
+            /* Performance summary */
+            .performance-summary {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+                margin: 20px 0;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border-left: 4px solid #3498db;
+            }
+    
+            .summary-stat {
+                text-align: center;
+            }
+    
+            .summary-stat .stat-label {
+                display: block;
+                color: #7f8c8d;
+                font-size: 0.85em;
+                margin-bottom: 5px;
+            }
+    
+            .summary-stat .stat-value {
+                display: block;
+                font-size: 1.2em;
+                font-weight: 600;
+                color: #2c3e50;
+            }
+    
+            /* Mobile responsiveness */
+            @media (max-width: 768px) {
+                .performers-table {
+                    font-size: 0.8em;
+                }
+    
+                .performers-table th,
+                .performers-table td {
+                    padding: 8px 4px;
+                }
+    
+                .performance-summary {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+    
+                .badge {
+                    font-size: 0.7em;
+                    padding: 3px 6px;
+                    min-width: 60px;
+                }
+            }
+    
+            /* Print styles */
+            @media print {
+                .tab-buttons {
+                    display: none;
+                }
+    
+                .tab-content {
+                    display: block !important;
+                    page-break-inside: avoid;
+                }
+    
+                .performers-table {
+                    font-size: 0.8em;
+                }
+            }
+        """
+
+        return enhanced_css
+
+
+    # Update the main get_css_styles method to use enhanced styles
+def get_css_styles(self) -> str:
+    """Return enhanced CSS styles for the HTML report"""
+    return self.get_enhanced_css_styles()
+
 
 
 # Testing function for Part 3
